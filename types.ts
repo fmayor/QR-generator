@@ -1,3 +1,4 @@
+
 export interface QROptions {
   margin: number;
   width: number;
@@ -22,3 +23,5 @@ export interface HistoryItem {
   timestamp: number;
   type: string;
 }
+
+export type GenerationMode = 'ai' | 'wifi' | 'vcard' | 'event' | 'crypto';

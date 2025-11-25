@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { QROptions, AIResponse } from './types';
+import { QROptions, AIResponse, GenerationMode } from './types';
 import { generateQRDataURL, generateQRSVG, downloadPDF, downloadSVG, verifyQRCode } from './utils/qrHelper';
 import { SettingsPanel } from './components/SettingsPanel';
+import { WifiForm, VCardForm, EventForm, CryptoForm } from './components/FormComponents';
 import { interpretInput } from './services/gemini';
 import { 
   Download, 
@@ -14,15 +16,22 @@ import {
   Loader2,
   AlertCircle,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  ZapOff,
+  Wifi,
+  User,
+  Calendar,
+  Bitcoin
 } from 'lucide-react';
 
 export default function App() {
   const [input, setInput] = useState<string>('https://google.com');
+  const [mode, setMode] = useState<GenerationMode>('ai');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [qrSvg, setQrSvg] = useState<string>('');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<'success' | 'fallback' | null>(null);
   const [isReadable, setIsReadable] = useState<boolean | null>(true);
   
   const [options, setOptions] = useState<QROptions>({
@@ -66,16 +75,24 @@ export default function App() {
   };
 
   const handleMagicInput = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || mode !== 'ai') return;
     setIsProcessingAI(true);
     setAiSummary(null);
+    setAiStatus(null);
     
     try {
       const result: AIResponse = await interpretInput(input);
       setInput(result.payload);
       setAiSummary(result.summary);
+      if (result.summary.includes("AI Disabled") || result.summary.includes("AI Unavailable")) {
+        setAiStatus('fallback');
+      } else {
+        setAiStatus('success');
+      }
     } catch (error) {
       console.error("AI Error", error);
+      setAiStatus('fallback');
+      setAiSummary("Could not connect to AI. Using raw text.");
     } finally {
       setIsProcessingAI(false);
     }
@@ -116,48 +133,118 @@ export default function App() {
             
             {/* Input Section */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Enter Content or Description
-              </label>
-              <div className="relative">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="w-full h-32 p-4 pr-12 text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400"
-                  placeholder="Paste a URL or try AI commands:
+              
+              {/* Tabs */}
+              <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                 {[
+                   { id: 'ai', icon: Sparkles, label: 'Text / AI' },
+                   { id: 'wifi', icon: Wifi, label: 'WiFi' },
+                   { id: 'vcard', icon: User, label: 'vCard' },
+                   { id: 'event', icon: Calendar, label: 'Event' },
+                   { id: 'crypto', icon: Bitcoin, label: 'Crypto' },
+                 ].map((tab) => (
+                   <button
+                    key={tab.id}
+                    onClick={() => {
+                      setMode(tab.id as GenerationMode);
+                      setAiSummary(null);
+                      setAiStatus(null);
+                      if (tab.id !== 'ai') setInput(''); // Clear input when switching to manual forms
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                      ${mode === tab.id 
+                        ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' 
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                   >
+                     <tab.icon className="w-4 h-4" />
+                     {tab.label}
+                   </button>
+                 ))}
+              </div>
+
+              {/* Dynamic Form Content */}
+              {mode === 'ai' ? (
+                <>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Enter Content or Description
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      className="w-full h-32 p-4 pr-12 text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400"
+                      placeholder="Paste a URL or try AI commands:
 • 'Event: Launch Party next Friday at 7pm'
 • 'WiFi: HomeNet pass: secret123'
 • 'Eth wallet: 0x71C...'
 • 'vCard: John Doe, 555-0199'"
-                />
-                <button
-                  onClick={handleMagicInput}
-                  disabled={isProcessingAI || !input.trim()}
-                  className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg transition-colors shadow-md group"
-                  title="Enhance with AI"
-                >
-                  {isProcessingAI ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  )}
-                </button>
-              </div>
+                    />
+                    <button
+                      onClick={handleMagicInput}
+                      disabled={isProcessingAI || !input.trim()}
+                      className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg transition-colors shadow-md group"
+                      title="Enhance with AI"
+                    >
+                      {isProcessingAI ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="border-t border-slate-100 pt-4">
+                  {mode === 'wifi' && <WifiForm onChange={setInput} />}
+                  {mode === 'vcard' && <VCardForm onChange={setInput} />}
+                  {mode === 'event' && <EventForm onChange={setInput} />}
+                  {mode === 'crypto' && <CryptoForm onChange={setInput} />}
+                </div>
+              )}
               
-              {aiSummary && (
-                <div className="mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-start gap-3">
-                  <div className="p-1 bg-emerald-100 rounded-full mt-0.5">
-                    <Share2 className="w-3 h-3 text-emerald-600" />
+              {/* AI Feedback (Only show in AI mode) */}
+              {mode === 'ai' && aiSummary && (
+                <div className={`mt-4 p-3 rounded-lg flex items-start gap-3 border ${
+                  aiStatus === 'success' 
+                    ? 'bg-emerald-50 border-emerald-100' 
+                    : 'bg-amber-50 border-amber-100'
+                }`}>
+                  <div className={`p-1 rounded-full mt-0.5 ${
+                    aiStatus === 'success' ? 'bg-emerald-100' : 'bg-amber-100'
+                  }`}>
+                    {aiStatus === 'success' ? (
+                      <Share2 className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <ZapOff className="w-3 h-3 text-amber-600" />
+                    )}
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">AI Converted</p>
-                    <p className="text-sm text-emerald-700">{aiSummary}</p>
+                    <p className={`text-xs font-semibold uppercase tracking-wide ${
+                      aiStatus === 'success' ? 'text-emerald-800' : 'text-amber-800'
+                    }`}>
+                      {aiStatus === 'success' ? 'AI Converted' : 'Standard Mode'}
+                    </p>
+                    <p className={`text-sm ${
+                      aiStatus === 'success' ? 'text-emerald-700' : 'text-amber-700'
+                    }`}>
+                      {aiSummary}
+                    </p>
                   </div>
                 </div>
               )}
-               <p className="mt-3 text-xs text-slate-400 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                The AI detects events, crypto addresses, WiFi, and contacts automatically.
+               <p className="mt-4 text-xs text-slate-400 flex items-center gap-1">
+                {mode === 'ai' ? (
+                  <>
+                    <AlertCircle className="w-3 h-3" />
+                    The AI detects events, crypto addresses, WiFi, and contacts automatically.
+                  </>
+                ) : (
+                   <>
+                    <CheckCircle2 className="w-3 h-3 text-indigo-500" />
+                    Manual mode enabled. Form data is formatted automatically.
+                   </>
+                )}
               </p>
             </div>
 

@@ -1,14 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIResponse } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const interpretInput = async (input: string): Promise<AIResponse> => {
   if (!input || input.trim().length === 0) {
     throw new Error("Input cannot be empty");
   }
 
-  // If it's already a valid URL and user didn't ask for help, just return it.
+  // 1. Basic URL Check (Client-side optimization to save tokens)
   try {
     const url = new URL(input);
     if (url.protocol === 'http:' || url.protocol === 'https:') {
@@ -22,9 +20,22 @@ export const interpretInput = async (input: string): Promise<AIResponse> => {
     // Not a URL, proceed to AI
   }
 
+  // 2. Check for API Key presence before attempting AI
+  if (!process.env.API_KEY) {
+    console.warn("API Key is missing. Falling back to plain text.");
+    return {
+      payload: input,
+      type: 'TEXT',
+      summary: 'Standard Text (AI Disabled)'
+    };
+  }
+
   const currentDate = new Date().toISOString();
 
   try {
+    // Initialize lazily so app doesn't crash on load if key is missing
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Transform the following user input into a standardized string format suitable for a QR code. 
@@ -76,7 +87,7 @@ export const interpretInput = async (input: string): Promise<AIResponse> => {
     return {
       payload: input,
       type: 'TEXT',
-      summary: 'Raw Text (AI processing failed)'
+      summary: 'Raw Text (AI Unavailable)'
     };
   }
 };
