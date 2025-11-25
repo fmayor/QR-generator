@@ -1,0 +1,5 @@
+{
+  "name": "IntelliQR - AI-Powered QR Generator",
+  "description": "A professional QR code generator with AI capabilities. Convert URLs, WiFi credentials, vCards, and more into customizable QR codes. Export as high-quality SVG or PDF.",
+  "requestFramePermissions": []
+}
