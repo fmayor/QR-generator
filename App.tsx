@@ -34,6 +34,8 @@ export default function App() {
   const [aiStatus, setAiStatus] = useState<'success' | 'fallback' | null>(null);
   const [isReadable, setIsReadable] = useState<boolean | null>(true);
   
+  const hasApiKey = !!process.env.API_KEY;
+  
   const [options, setOptions] = useState<QROptions>({
     margin: 2,
     width: 1024,
@@ -117,13 +119,17 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">IntelliQR</h1>
-              <p className="text-sm text-slate-500">Smart QR Code Generator</p>
+              <p className="text-sm text-slate-500">
+                {hasApiKey ? 'Smart QR Code Generator' : 'Professional QR Code Generator'}
+              </p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
-            <Sparkles className="w-4 h-4 text-indigo-500" />
-            <span>Powered by Gemini 2.5</span>
-          </div>
+          {hasApiKey && (
+            <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+              <Sparkles className="w-4 h-4 text-indigo-500" />
+              <span>Powered by Gemini 2.5</span>
+            </div>
+          )}
         </header>
 
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
@@ -137,7 +143,7 @@ export default function App() {
               {/* Tabs */}
               <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
                  {[
-                   { id: 'ai', icon: Sparkles, label: 'Text / AI' },
+                   { id: 'ai', icon: hasApiKey ? Sparkles : FileText, label: hasApiKey ? 'Text / AI' : 'Text' },
                    { id: 'wifi', icon: Wifi, label: 'WiFi' },
                    { id: 'vcard', icon: User, label: 'vCard' },
                    { id: 'event', icon: Calendar, label: 'Event' },
@@ -174,24 +180,22 @@ export default function App() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       className="w-full h-32 p-4 pr-12 text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400"
-                      placeholder="Paste a URL or try AI commands:
-• 'Event: Launch Party next Friday at 7pm'
-• 'WiFi: HomeNet pass: secret123'
-• 'Eth wallet: 0x71C...'
-• 'vCard: John Doe, 555-0199'"
+                      placeholder={hasApiKey ? "Paste a URL or try AI commands:\n• 'Event: Launch Party next Friday at 7pm'\n• 'WiFi: HomeNet pass: secret123'\n• 'Eth wallet: 0x71C...'\n• 'vCard: John Doe, 555-0199'" : "Enter text, website URL, or paste content here..."}
                     />
-                    <button
-                      onClick={handleMagicInput}
-                      disabled={isProcessingAI || !input.trim()}
-                      className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg transition-colors shadow-md group"
-                      title="Enhance with AI"
-                    >
-                      {isProcessingAI ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                      )}
-                    </button>
+                    {hasApiKey && (
+                      <button
+                        onClick={handleMagicInput}
+                        disabled={isProcessingAI || !input.trim()}
+                        className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg transition-colors shadow-md group"
+                        title="Enhance with AI"
+                      >
+                        {isProcessingAI ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </>
               ) : (
@@ -203,7 +207,7 @@ export default function App() {
                 </div>
               )}
               
-              {/* AI Feedback (Only show in AI mode) */}
+              {/* AI Feedback (Only show in AI mode and if we have a summary) */}
               {mode === 'ai' && aiSummary && (
                 <div className={`mt-4 p-3 rounded-lg flex items-start gap-3 border ${
                   aiStatus === 'success' 
@@ -235,10 +239,17 @@ export default function App() {
               )}
                <p className="mt-4 text-xs text-slate-400 flex items-center gap-1">
                 {mode === 'ai' ? (
-                  <>
-                    <AlertCircle className="w-3 h-3" />
-                    The AI detects events, crypto addresses, WiFi, and contacts automatically.
-                  </>
+                  hasApiKey ? (
+                    <>
+                      <AlertCircle className="w-3 h-3" />
+                      The AI detects events, crypto addresses, WiFi, and contacts automatically.
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-3 h-3" />
+                      Standard text mode. Use the tabs above for specific formats.
+                    </>
+                  )
                 ) : (
                    <>
                     <CheckCircle2 className="w-3 h-3 text-indigo-500" />
