@@ -80,9 +80,9 @@ export default function App() {
         // scanner the best possible chance. If this fails, the logo is simply too big or 
         // blocking critical areas, regardless of color.
         if (options.logo) {
-           const geometryOptions = { 
+           const geometryOptions: QROptions = { 
              ...options, 
-             style: 'square' as const,
+             style: 'square',
              color: { dark: '#000000', light: '#ffffff' } 
            };
            const geometryUrl = await generateQRDataURL(input, geometryOptions);
@@ -96,9 +96,9 @@ export default function App() {
         // If the geometry is fine (or no logo exists), we isolate the color contrast.
         // We verify a "clean" version of the QR code with the user's colors.
         if (!errorType) {
-           const colorOptions = { 
+           const colorOptions: QROptions = { 
              ...options, 
-             style: 'square' as const,
+             style: 'square',
              logo: null 
            };
            const colorUrl = await generateQRDataURL(input, colorOptions);
@@ -187,7 +187,7 @@ export default function App() {
               <QrCode className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Easy QR</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">SVG QR</h1>
               <p className="text-sm text-slate-500">
                 No Signup. No Limits. Just QR Codes.
               </p>

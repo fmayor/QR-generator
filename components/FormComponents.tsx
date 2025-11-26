@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Wifi, User, Calendar, Bitcoin, MapPin, Globe, Mail, Phone, Briefcase, AlertCircle } from 'lucide-react';
 
@@ -176,7 +175,15 @@ export const EventForm: React.FC<FormProps> = ({ onChange }) => {
     description: ''
   });
 
-  const isInvalidDate = data.start && data.end && new Date(data.start) > new Date(data.end);
+  // Calculate validity
+  let isInvalidDate = false;
+  try {
+    if (data.start && data.end) {
+      isInvalidDate = new Date(data.start) > new Date(data.end);
+    }
+  } catch (e) {
+    // ignore invalid parsing
+  }
 
   useEffect(() => {
     // Helper to format date as YYYYMMDDTHHmm00
@@ -184,7 +191,7 @@ export const EventForm: React.FC<FormProps> = ({ onChange }) => {
 
     const payload = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//EasyQR//EN
+PRODID:-//SVGQR//EN
 BEGIN:VEVENT
 SUMMARY:${data.title}
 LOCATION:${data.location}
@@ -206,21 +213,25 @@ END:VCALENDAR`;
       // If user sets a start date, and the end date is either empty OR invalid (before start),
       // automatically set end date to start + 1 hour.
       if (newStart) {
-        const startDate = new Date(newStart);
-        const currentEnd = next.end ? new Date(next.end) : null;
-        
-        if (!currentEnd || currentEnd <= startDate) {
-           const nextHour = new Date(startDate.getTime() + 60 * 60 * 1000);
-           
-           // Manually format to YYYY-MM-DDTHH:mm to preserve local time
-           const pad = (n: number) => n.toString().padStart(2, '0');
-           const y = nextHour.getFullYear();
-           const m = pad(nextHour.getMonth() + 1);
-           const d = pad(nextHour.getDate());
-           const h = pad(nextHour.getHours());
-           const min = pad(nextHour.getMinutes());
-           
-           next.end = `${y}-${m}-${d}T${h}:${min}`;
+        try {
+          const startDate = new Date(newStart);
+          const currentEnd = next.end ? new Date(next.end) : null;
+          
+          if (!currentEnd || currentEnd <= startDate) {
+             const nextHour = new Date(startDate.getTime() + 60 * 60 * 1000);
+             
+             // Manually format to YYYY-MM-DDTHH:mm to preserve local time
+             const pad = (n: number) => n.toString().padStart(2, '0');
+             const y = nextHour.getFullYear();
+             const m = pad(nextHour.getMonth() + 1);
+             const d = pad(nextHour.getDate());
+             const h = pad(nextHour.getHours());
+             const min = pad(nextHour.getMinutes());
+             
+             next.end = `${y}-${m}-${d}T${h}:${min}`;
+          }
+        } catch (e) {
+          console.warn("Date auto-fix failed", e);
         }
       }
       return next;
