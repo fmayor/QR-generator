@@ -45,6 +45,7 @@ export default function App() {
     },
     errorCorrectionLevel: 'M',
     logoSize: 0.2,
+    style: 'square',
   });
 
   // Debounce input to avoid excessive rendering
@@ -63,9 +64,14 @@ export default function App() {
       setQrDataUrl(dataUrl);
       setQrSvg(svg);
       
-      // Verify readability if there is a logo or custom settings that might break it
-      if (options.logo || options.color.dark !== '#000000' || options.color.light !== '#ffffff') {
-        const readable = await verifyQRCode(dataUrl, input);
+      // Verify readability if there is a logo or custom settings that might break it.
+      // We force verification using 'square' style because jsQR (the verification library) 
+      // often fails on 'dots' even if they are valid, but we still want to catch contrast/logo issues.
+      if (options.logo || options.color.dark !== '#000000' || options.color.light !== '#ffffff' || options.style !== 'square') {
+        const verifyOptions = { ...options, style: 'square' as const };
+        const verifyUrl = await generateQRDataURL(input, verifyOptions);
+        
+        const readable = await verifyQRCode(verifyUrl, input);
         setIsReadable(readable);
       } else {
         setIsReadable(true);

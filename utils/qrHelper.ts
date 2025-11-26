@@ -3,62 +3,118 @@ import { jsPDF } from 'jspdf';
 import jsQR from 'jsqr';
 import { QROptions } from '../types';
 
+/**
+ * Common logic to check if a module is part of the 3 large position patterns (Finder Patterns)
+ * This allows us to keep them solid/readable while styling the rest of the code.
+ */
+const isFinderPattern = (row: number, col: number, size: number) => {
+  // Top-left finder
+  if (row < 7 && col < 7) return true;
+  // Top-right finder
+  if (row < 7 && col >= size - 7) return true;
+  // Bottom-left finder
+  if (row >= size - 7 && col < 7) return true;
+  return false;
+};
+
 export const generateQRDataURL = async (text: string, options: QROptions): Promise<string> => {
   try {
-    const qrDataUrl = await QRCode.toDataURL(text, {
-      width: options.width,
-      margin: options.margin,
-      color: options.color,
-      errorCorrectionLevel: options.errorCorrectionLevel,
-    });
+    // 1. Get Raw QR Data Modules
+    const qr = QRCode.create(text, { errorCorrectionLevel: options.errorCorrectionLevel });
+    const modules = qr.modules;
+    const size = modules.size;
+    const margin = options.margin;
+    
+    // Calculate sizing
+    const totalSize = size + (margin * 2);
+    // Use high resolution for canvas
+    const pixelSize = 20; // Internal pixels per module
+    const canvasSize = totalSize * pixelSize;
 
-    if (!options.logo) {
-      return qrDataUrl;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return '';
+
+    // 2. Draw Background
+    ctx.fillStyle = options.color.light;
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+    // 3. Draw Modules
+    ctx.fillStyle = options.color.dark;
+    
+    const style = options.style || 'square';
+    const dotScale = 0.8; // Scaling for dots so they don't touch (looks cleaner)
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (modules.get(r, c)) {
+          const x = (c + margin) * pixelSize;
+          const y = (r + margin) * pixelSize;
+          
+          if (isFinderPattern(r, c, size) || style === 'square') {
+            // Default Square
+            ctx.fillRect(x, y, pixelSize, pixelSize);
+          } else if (style === 'dots') {
+            // Circle / Dot
+            const cx = x + pixelSize / 2;
+            const cy = y + pixelSize / 2;
+            const radius = (pixelSize * dotScale) / 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
     }
 
-    // Composite Logo onto QR Code
+    const baseQRUrl = canvas.toDataURL();
+
+    if (!options.logo) {
+      return baseQRUrl;
+    }
+
+    // 4. Composite Logo
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = options.width;
-      canvas.height = options.width;
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        resolve(qrDataUrl);
-        return;
-      }
-
       const qrImage = new Image();
       const logoImage = new Image();
 
       qrImage.onload = () => {
-        // Draw the QR code (which handles its own background from options.color.light)
-        ctx.drawImage(qrImage, 0, 0, options.width, options.width);
+        // We need to respect the requested output width here, 
+        // effectively resizing the high-res canvas down or up.
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = options.width;
+        finalCanvas.height = options.width;
+        const fCtx = finalCanvas.getContext('2d');
+        
+        if (!fCtx) {
+           resolve(baseQRUrl); 
+           return;
+        }
+
+        // Draw the QR
+        fCtx.drawImage(qrImage, 0, 0, options.width, options.width);
 
         logoImage.onload = () => {
-          // Calculate logo dimensions using options.logoSize (default 20%)
           const sizeMultiplier = options.logoSize || 0.2;
           const logoSize = options.width * sizeMultiplier;
           const xy = (options.width - logoSize) / 2;
-
-          // Optional: Draw a white background behind the logo for better visibility
-          // ctx.fillStyle = '#ffffff';
-          // ctx.fillRect(xy, xy, logoSize, logoSize);
           
-          ctx.drawImage(logoImage, xy, xy, logoSize, logoSize);
-          resolve(canvas.toDataURL());
+          // Optional: Add whitespace around logo?
+          // fCtx.fillStyle = options.color.light;
+          // fCtx.fillRect(xy - 5, xy - 5, logoSize + 10, logoSize + 10);
+
+          fCtx.drawImage(logoImage, xy, xy, logoSize, logoSize);
+          resolve(finalCanvas.toDataURL());
         };
-        
-        logoImage.onerror = () => {
-          console.warn('Failed to load logo, returning bare QR');
-          resolve(qrDataUrl);
-        };
-        
+
+        logoImage.onerror = () => resolve(baseQRUrl);
         logoImage.src = options.logo!;
       };
 
-      qrImage.onerror = (e) => reject(e);
-      qrImage.src = qrDataUrl;
+      qrImage.src = baseQRUrl;
     });
 
   } catch (err) {
@@ -69,29 +125,51 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
 
 export const generateQRSVG = async (text: string, options: QROptions): Promise<string> => {
   try {
-    let svg = await QRCode.toString(text, {
-      type: 'svg',
-      width: options.width,
-      margin: options.margin,
-      color: options.color,
-      errorCorrectionLevel: options.errorCorrectionLevel,
-    });
+    const qr = QRCode.create(text, { errorCorrectionLevel: options.errorCorrectionLevel });
+    const modules = qr.modules;
+    const size = modules.size;
+    const margin = options.margin;
+    const totalSize = size + (margin * 2);
+    
+    // We'll define viewbox = totalSize, then users can scale the SVG arbitrarily
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalSize} ${totalSize}" shape-rendering="crispEdges">`;
+    
+    // Background
+    svgContent += `<rect width="100%" height="100%" fill="${options.color.light}" />`;
+    
+    const style = options.style || 'square';
+    const dotScale = 0.8;
 
-    if (options.logo) {
-      // Calculate position using logoSize (default 20%)
-      const sizeMultiplier = options.logoSize || 0.2;
-      const logoSize = options.width * sizeMultiplier;
-      const pos = (options.width - logoSize) / 2;
-      
-      // Create an image tag
-      // We must use the data URL of the logo
-      const imageTag = `<image href="${options.logo}" x="${pos}" y="${pos}" height="${logoSize}" width="${logoSize}" />`;
-      
-      // Inject before the closing svg tag
-      svg = svg.replace('</svg>', `${imageTag}</svg>`);
+    // Draw Modules
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (modules.get(r, c)) {
+          const x = c + margin;
+          const y = r + margin;
+          
+          if (isFinderPattern(r, c, size) || style === 'square') {
+            svgContent += `<rect x="${x}" y="${y}" width="1" height="1" fill="${options.color.dark}" />`;
+          } else if (style === 'dots') {
+            const cx = x + 0.5;
+            const cy = y + 0.5;
+            const rVal = dotScale / 2;
+            svgContent += `<circle cx="${cx}" cy="${cy}" r="${rVal}" fill="${options.color.dark}" />`;
+          }
+        }
+      }
     }
 
-    return svg;
+    // Logo embedding
+    if (options.logo) {
+      const sizeMultiplier = options.logoSize || 0.2;
+      const logoSize = totalSize * sizeMultiplier;
+      const pos = (totalSize - logoSize) / 2;
+      
+      svgContent += `<image href="${options.logo}" x="${pos}" y="${pos}" height="${logoSize}" width="${logoSize}" />`;
+    }
+
+    svgContent += '</svg>';
+    return svgContent;
   } catch (err) {
     console.error(err);
     throw err;
@@ -131,14 +209,11 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
       }
 
       // --- PASS 2: DYNAMIC CONTRAST BOOST ---
-      // This is robust for Custom Background Colors.
-      // Instead of assuming white background, we find the dynamic range.
       try {
         const data = imageData.data;
         let minLuma = 255;
         let maxLuma = 0;
 
-        // 1. Find min and max luminance in the image
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
@@ -148,10 +223,8 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
           if (luma > maxLuma) maxLuma = luma;
         }
 
-        // 2. Calculate dynamic threshold
         const threshold = (minLuma + maxLuma) / 2;
 
-        // 3. Binarize based on dynamic threshold
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
@@ -178,7 +251,6 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         console.warn("Pass 2 failed", e);
       }
 
-      // If both passes fail
       resolve(false);
     };
     
@@ -190,16 +262,11 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
 export const downloadPDF = (text: string, options: QROptions, filename: string = 'qrcode') => {
   const doc = new jsPDF();
   
-  // Create raw QR modules to allow vector drawing
-  const qr = QRCode.create(text, { 
-    errorCorrectionLevel: options.errorCorrectionLevel 
-  });
-  
+  const qr = QRCode.create(text, { errorCorrectionLevel: options.errorCorrectionLevel });
   const rawCount = qr.modules.size;
   const margin = options.margin;
   const totalCount = rawCount + (margin * 2);
   
-  // Size calculations (Center on A4 page, 60% of min dimension)
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const qrSize = Math.min(pageWidth, pageHeight) * 0.6; 
@@ -207,48 +274,46 @@ export const downloadPDF = (text: string, options: QROptions, filename: string =
   const yOffset = (pageHeight - qrSize) / 2;
   const cellSize = qrSize / totalCount;
 
-  // Draw Background
+  // Background
   if (options.color.light) {
     doc.setFillColor(options.color.light);
     doc.rect(xOffset, yOffset, qrSize, qrSize, 'F');
   }
 
-  // Draw Modules (Vector Rectangles)
+  // Modules
   doc.setFillColor(options.color.dark);
-  const modules = qr.modules.data;
-  
-  for (let row = 0; row < rawCount; row++) {
-    for (let col = 0; col < rawCount; col++) {
-      if (modules[row * rawCount + col]) {
-        doc.rect(
-          xOffset + (col + margin) * cellSize,
-          yOffset + (row + margin) * cellSize,
-          cellSize,
-          cellSize,
-          'F'
-        );
+  const modules = qr.modules;
+  const style = options.style || 'square';
+  const dotScale = 0.8;
+
+  for (let r = 0; r < rawCount; r++) {
+    for (let c = 0; c < rawCount; c++) {
+      if (modules.get(r, c)) {
+        const x = xOffset + (c + margin) * cellSize;
+        const y = yOffset + (r + margin) * cellSize;
+        
+        if (isFinderPattern(r, c, rawCount) || style === 'square') {
+           doc.rect(x, y, cellSize, cellSize, 'F');
+        } else if (style === 'dots') {
+           // circle(x, y, r, style) - x,y are center
+           const cx = x + cellSize / 2;
+           const cy = y + cellSize / 2;
+           const radius = (cellSize * dotScale) / 2;
+           doc.circle(cx, cy, radius, 'F');
+        }
       }
     }
   }
 
-  // Overlay Logo
+  // Logo
   if (options.logo) {
     const sizeMultiplier = options.logoSize || 0.2;
     const logoSize = qrSize * sizeMultiplier;
     const logoPos = (qrSize - logoSize) / 2;
-    
-    // Determine format
     const logoFormat = options.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
     
     try {
-      doc.addImage(
-        options.logo, 
-        logoFormat, 
-        xOffset + logoPos, 
-        yOffset + logoPos, 
-        logoSize, 
-        logoSize
-      );
+      doc.addImage(options.logo, logoFormat, xOffset + logoPos, yOffset + logoPos, logoSize, logoSize);
     } catch (e) {
       console.warn("Could not add logo to PDF", e);
     }

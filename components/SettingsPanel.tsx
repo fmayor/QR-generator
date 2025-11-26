@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { QROptions } from '../types';
-import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket } from 'lucide-react';
+import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket, Grid, Circle, Square } from 'lucide-react';
 
 interface SettingsPanelProps {
   options: QROptions;
@@ -38,6 +38,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
 
   const handleLevelChange = (level: QROptions['errorCorrectionLevel']) => {
     setOptions(prev => ({ ...prev, errorCorrectionLevel: level }));
+  };
+  
+  const handleStyleChange = (style: 'square' | 'dots') => {
+    setOptions(prev => ({ ...prev, style }));
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,6 +153,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Pixel Style Selector */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-3">
+            <Grid className="w-4 h-4" />
+            Pixel Style
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'square', label: 'Square', icon: Square },
+              { id: 'dots', label: 'Dots', icon: Circle }
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => handleStyleChange(s.id as any)}
+                className={`flex flex-col items-center justify-center gap-2 py-3 rounded-lg border transition-all duration-200
+                  ${options.style === s.id
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    : 'border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600'
+                  }`}
+              >
+                <s.icon className="w-5 h-5" fill="currentColor" strokeWidth={0} />
+                <span className="text-xs font-medium">{s.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 

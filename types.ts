@@ -1,4 +1,5 @@
 
+
 export interface QROptions {
   margin: number;
   width: number;
@@ -9,6 +10,7 @@ export interface QROptions {
   errorCorrectionLevel: 'L' | 'M' | 'Q' | 'H';
   logo?: string | null;
   logoSize?: number;
+  style?: 'square' | 'dots';
 }
 
 export interface AIResponse {
