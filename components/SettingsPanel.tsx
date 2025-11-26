@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { QROptions } from '../types';
-import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X } from 'lucide-react';
+import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette } from 'lucide-react';
 
 interface SettingsPanelProps {
   options: QROptions;
@@ -77,13 +77,25 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
                 {options.color.dark === c.value && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
               </button>
             ))}
-            <input
-              type="color"
-              value={options.color.dark}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 p-0"
-              title="Custom Color"
-            />
+            
+            {/* Custom Rainbow Picker */}
+            <div className="relative group">
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ring-1 ring-slate-100"
+                style={{ 
+                  background: 'linear-gradient(135deg, #fca5a5 0%, #fcd34d 25%, #86efac 50%, #67e8f9 75%, #c4b5fd 100%)' 
+                }}
+              >
+                <Palette className="w-4 h-4 text-slate-700 opacity-70" />
+              </div>
+              <input
+                type="color"
+                value={options.color.dark}
+                onChange={(e) => handleColorChange(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                title="Choose Custom Color"
+              />
+            </div>
           </div>
         </div>
 

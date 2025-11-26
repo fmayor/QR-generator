@@ -111,11 +111,19 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         return;
       }
       
+      // FIX: Fill white background first. 
+      // This handles transparent backgrounds and ensures 'light' colors have proper contrast against white for the scanner.
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
       ctx.drawImage(img, 0, 0);
       
       try {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        // Add inversionAttempts to help read light-on-dark or low contrast codes
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "attemptBoth"
+        });
         
         if (code) {
           resolve(code.data === expectedContent);

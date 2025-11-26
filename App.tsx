@@ -103,7 +103,7 @@ export default function App() {
   const handleDownloadPNG = () => {
     const link = document.createElement('a');
     link.href = qrDataUrl;
-    link.download = 'qrcode-intelli.png';
+    link.download = 'qrcode-easy.png';
     link.click();
   };
 
@@ -118,16 +118,16 @@ export default function App() {
               <QrCode className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">IntelliQR</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Easy QR</h1>
               <p className="text-sm text-slate-500">
-                {hasApiKey ? 'Smart QR Code Generator' : 'Professional QR Code Generator'}
+                No Signup. No Limits. Just QR Codes.
               </p>
             </div>
           </div>
           {hasApiKey && (
             <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
               <Sparkles className="w-4 h-4 text-indigo-500" />
-              <span>Powered by Gemini 2.5</span>
+              <span>Enhanced with AI</span>
             </div>
           )}
         </header>
@@ -286,7 +286,7 @@ export default function App() {
                    )}
                  </div>
                  <p className="text-sm text-slate-400">
-                   {isReadable === false ? 'Unreadable. Reduce logo size or boost error correction.' : 'Scannable in real-time'}
+                   {isReadable === false ? 'Hard to scan. Check contrast or logo.' : 'Scannable in real-time'}
                  </p>
               </div>
 
@@ -313,7 +313,8 @@ export default function App() {
                 <div className="mt-4 w-full p-3 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
                   <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
                   <p className="text-xs text-rose-700 leading-relaxed">
-                    <strong>Scan Verification Failed:</strong> The logo covers too much of the QR code. Try reducing the logo size or setting Error Correction to 'H' (High).
+                    <strong>Scan Verification Failed:</strong> This code might be hard for some cameras to read. 
+                    Try using a <strong>darker color</strong> for higher contrast, reducing the logo size, or setting Error Correction to 'H'.
                   </p>
                 </div>
               )}
@@ -328,7 +329,7 @@ export default function App() {
                   PNG
                 </button>
                 <button
-                  onClick={() => downloadSVG(qrSvg, 'intelli-qr')}
+                  onClick={() => downloadSVG(qrSvg, 'easy-qr')}
                   disabled={isReadable === false}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-slate-200 hover:border-indigo-500 hover:text-indigo-600 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed text-slate-700 rounded-xl font-medium transition-all active:scale-95"
                 >
@@ -336,7 +337,7 @@ export default function App() {
                   SVG
                 </button>
                 <button
-                  onClick={() => downloadPDF(input, options, 'intelli-qr')}
+                  onClick={() => downloadPDF(input, options, 'easy-qr')}
                   disabled={isReadable === false}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-slate-200 hover:border-rose-500 hover:text-rose-600 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed text-slate-700 rounded-xl font-medium transition-all active:scale-95"
                 >
