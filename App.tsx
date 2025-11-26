@@ -275,8 +275,8 @@ export default function App() {
                  <div className="flex items-center justify-center gap-2">
                    <h2 className="text-lg font-semibold text-slate-800">Live Preview</h2>
                    {isReadable === false && (
-                     <span className="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                       <AlertTriangle className="w-3 h-3" /> Error
+                     <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                       <AlertTriangle className="w-3 h-3" /> Check Contrast
                      </span>
                    )}
                    {isReadable === true && options.logo && (
@@ -286,21 +286,21 @@ export default function App() {
                    )}
                  </div>
                  <p className="text-sm text-slate-400">
-                   {isReadable === false ? 'Hard to scan. Check contrast or logo.' : 'Scannable in real-time'}
+                   {isReadable === false ? 'Browser check warning. Verify with phone.' : 'Scannable in real-time'}
                  </p>
               </div>
 
               <div 
-                className={`bg-white p-4 rounded-xl shadow-inner border transition-colors duration-300 ${isReadable === false ? 'border-rose-200 bg-rose-50' : 'border-slate-100'}`}
+                className={`bg-white p-4 rounded-xl shadow-inner border transition-colors duration-300 ${isReadable === false ? 'border-amber-200 bg-amber-50' : 'border-slate-100'}`}
                 style={{
-                  boxShadow: `0 20px 40px -10px ${isReadable === false ? '#ef4444' : options.color.dark}33`
+                  boxShadow: `0 20px 40px -10px ${isReadable === false ? '#f59e0b' : options.color.dark}33`
                 }}
               >
                 {qrDataUrl ? (
                    <img 
                     src={qrDataUrl} 
                     alt="QR Code" 
-                    className={`w-64 h-64 md:w-72 md:h-72 object-contain transition-all duration-300 ${isReadable === false ? 'opacity-90 blur-[0.5px]' : ''}`}
+                    className={`w-64 h-64 md:w-72 md:h-72 object-contain transition-all duration-300`}
                    />
                 ) : (
                   <div className="w-64 h-64 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
@@ -310,19 +310,18 @@ export default function App() {
               </div>
               
               {isReadable === false && (
-                <div className="mt-4 w-full p-3 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
-                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-                  <p className="text-xs text-rose-700 leading-relaxed">
-                    <strong>Scan Verification Failed:</strong> This code might be hard for some cameras to read. 
-                    Try using a <strong>darker color</strong> for higher contrast, reducing the logo size, or setting Error Correction to 'H'.
-                  </p>
+                <div className="mt-4 w-full p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div className="text-xs text-amber-700 leading-relaxed space-y-1">
+                    <p><strong>Readability Warning:</strong> Our strict browser check couldn't read this code.</p>
+                    <p>Modern phones are often smarter, but to be safe: consider a <strong>darker color</strong> or smaller logo.</p>
+                  </div>
                 </div>
               )}
 
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                 <button
                   onClick={handleDownloadPNG}
-                  disabled={isReadable === false}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-lg shadow-slate-200 active:scale-95"
                 >
                   <FileImage className="w-4 h-4" />
@@ -330,7 +329,6 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => downloadSVG(qrSvg, 'easy-qr')}
-                  disabled={isReadable === false}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-slate-200 hover:border-indigo-500 hover:text-indigo-600 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed text-slate-700 rounded-xl font-medium transition-all active:scale-95"
                 >
                   <Link2 className="w-4 h-4" />
@@ -338,7 +336,6 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => downloadPDF(input, options, 'easy-qr')}
-                  disabled={isReadable === false}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-slate-200 hover:border-rose-500 hover:text-rose-600 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed text-slate-700 rounded-xl font-medium transition-all active:scale-95"
                 >
                   <FileText className="w-4 h-4" />

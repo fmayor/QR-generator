@@ -111,29 +111,66 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         return;
       }
       
-      // FIX: Fill white background first. 
-      // This handles transparent backgrounds and ensures 'light' colors have proper contrast against white for the scanner.
+      // 1. Draw with white background (Basic setup)
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
       ctx.drawImage(img, 0, 0);
       
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // --- PASS 1: STANDARD SCAN ---
       try {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        // Add inversionAttempts to help read light-on-dark or low contrast codes
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "attemptBoth"
-        });
-        
-        if (code) {
-          resolve(code.data === expectedContent);
-        } else {
-          resolve(false);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const code = jsQR(imageData.data, w, h, { inversionAttempts: "attemptBoth" });
+        if (code && code.data === expectedContent) {
+          resolve(true);
+          return;
         }
       } catch (e) {
-        console.error("Verification failed", e);
-        resolve(false);
+        console.warn("Pass 1 failed", e);
       }
+
+      // --- PASS 2: HIGH CONTRAST / BINARIZATION ---
+      // This mimics phone cameras which auto-contrast images.
+      // We essentially force anything "not white" to be black.
+      try {
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          // Calculate luminance (perceived brightness)
+          // 255 is white, 0 is black.
+          const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+          
+          // Threshold: If it's darker than pure white (allowing for some anti-aliasing noise), snap to black.
+          // This turns "Light Orange" (which has high luminance but isn't 255) into "Black".
+          if (luminance < 250) { 
+             data[i] = 0;     // R
+             data[i + 1] = 0; // G
+             data[i + 2] = 0; // B
+          } else {
+             data[i] = 255;
+             data[i + 1] = 255;
+             data[i + 2] = 255;
+          }
+        }
+        
+        const code = jsQR(data, w, h, { inversionAttempts: "attemptBoth" });
+        if (code && code.data === expectedContent) {
+          resolve(true);
+          return;
+        }
+      } catch (e) {
+        console.warn("Pass 2 failed", e);
+      }
+
+      // If both passes fail
+      resolve(false);
     };
     
     img.onerror = () => resolve(false);
