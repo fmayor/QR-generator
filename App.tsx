@@ -1,20 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { QROptions, AIResponse, GenerationMode } from './types';
 import { generateQRDataURL, generateQRSVG, downloadPDF, downloadSVG, verifyQRCode } from './utils/qrHelper';
 import { SettingsPanel } from './components/SettingsPanel';
 import { WifiForm, VCardForm, EventForm, CryptoForm } from './components/FormComponents';
 import { PrivacyPolicy, TermsOfService } from './components/LegalPages';
+import { FAQSection, HowToUseSection, Footer } from './components/StaticSections';
 import { interpretInput } from './services/gemini';
 import { 
-  Download, 
   Share2, 
   Sparkles, 
-  QrCode, 
   Link2, 
   FileImage, 
   FileText, 
   Loader2,
-  AlertCircle,
   AlertTriangle,
   CheckCircle2,
   ZapOff,
@@ -22,11 +20,9 @@ import {
   User,
   Calendar,
   Bitcoin,
-  HelpCircle,
   Copy,
-  X,
-  Palette,
-  MousePointer2
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 type ViewState = 'home' | 'privacy' | 'terms';
@@ -36,9 +32,7 @@ export default function App() {
   const [scrollToSection, setScrollToSection] = useState<string | undefined>(undefined);
   
   // Generator State
-  // textTabInput stores the user's input in the Text/AI tab specifically
   const [textTabInput, setTextTabInput] = useState<string>('https://svg-qr.com');
-  // input stores the actual payload to be generated (shared across all modes)
   const [input, setInput] = useState<string>('https://svg-qr.com');
   
   const [mode, setMode] = useState<GenerationMode>('ai');
@@ -75,11 +69,11 @@ export default function App() {
     if (!consent) setShowCookieBanner(true);
   }, []);
 
-  const navigateTo = (navigateToView: ViewState, sectionId?: string) => {
+  const navigateTo = useCallback((navigateToView: ViewState, sectionId?: string) => {
     setView(navigateToView);
     setScrollToSection(sectionId);
     window.scrollTo(0, 0);
-  };
+  }, []);
 
   const acceptCookies = () => {
     localStorage.setItem('cookie-consent', 'true');
@@ -323,7 +317,7 @@ export default function App() {
                          setTextTabInput(val);
                          setInput(val); // Sync to master payload
                       }}
-                      className="w-full h-32 p-4 pr-12 text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400"
+                      className="w-full h-32 p-4 pr-12 text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none transition-shadow placeholder:text-slate-400"
                       placeholder={hasApiKey ? "Paste a URL or try AI commands:\n• 'Event: Launch Party next Friday at 7pm'\n• 'WiFi: HomeNet pass: secret123'\n• 'Eth wallet: 0x71C...'\n• 'vCard: John Doe, 555-0199'" : "Enter text, website URL, or paste content here..."}
                     />
                     {hasApiKey && (
@@ -542,164 +536,9 @@ export default function App() {
           </div>
         </main>
 
-        {/* FAQ Section */}
-        <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 mt-12">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-              <HelpCircle className="w-5 h-5 text-indigo-600" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">Frequently Asked Questions</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">What is a QR code and why are they useful?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  A QR (Quick Response) code is a two-dimensional barcode that allows smartphones to instantly access information. 
-                  They are incredibly useful for sharing websites, Wi-Fi passwords, contact details (vCards), or event info without typing.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">How to create a Vector QR Code?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Creating a vector QR code is simple. Generate your code using the tools above, then click the "SVG" or "PDF" download buttons. 
-                  These formats save the code as mathematical paths, ensuring it stays perfectly sharp at any size, from business cards to billboards.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Is this really free?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Yes, this tool is 100% free and open-source. All generation happens locally in your browser, meaning your data is private, secure, and no sign-up is required.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">What is error correction?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Error correction allows a QR code to be scanned even if part of it is damaged or covered. 
-                  We offer four levels: L (Low, 7%), M (Medium, 15%), Q (Quartile, 25%), and H (High, 30%). 
-                  Use 'H' if you add a logo to the center.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Why use SVG for QR Codes?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  SVG (Scalable Vector Graphics) files are resolution-independent. Unlike PNG or JPG images, 
-                  SVGs do not get blurry or pixelated when printed on large surfaces. They are the professional standard for printing.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Can I use these QR codes for commercial purposes?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Absolutely. The QR codes generated here are yours forever. There are no time limits, scan limits, or hidden tracking. 
-                  You can use them for business cards, product packaging, or marketing campaigns without any restrictions.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* How to Use Section */}
-        <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 mt-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">How to Use This Tool</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Step 1 */}
-            <div className="relative pl-4 border-l-2 border-slate-100 hover:border-indigo-500 transition-colors">
-              <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-600 ring-4 ring-white"></span>
-              <h3 className="font-bold text-slate-900 mb-2">1. Choose Content Type</h3>
-              <p className="text-sm text-slate-500 leading-relaxed mb-4">
-                Select the tab that fits your needs. Use <strong>URL</strong> for websites, <strong>WiFi</strong> for easy network access, or <strong>vCard</strong> for digital business cards.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative pl-4 border-l-2 border-slate-100 hover:border-indigo-500 transition-colors">
-              <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white"></span>
-              <h3 className="font-bold text-slate-900 mb-2">2. Customize Design</h3>
-              <p className="text-sm text-slate-500 leading-relaxed mb-4">
-                Match your brand by adjusting the <strong>Foreground</strong> and <strong>Background</strong> colors. You can also change the pixel style to "Dots" or "Square" and upload a custom logo to place in the center.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="relative pl-4 border-l-2 border-slate-100 hover:border-indigo-500 transition-colors">
-               <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white"></span>
-              <h3 className="font-bold text-slate-900 mb-2">3. Download Vector</h3>
-              <p className="text-sm text-slate-500 leading-relaxed mb-4">
-                For professional printing, always choose <strong>SVG</strong> or <strong>PDF</strong>. These vector formats ensure your QR code remains crisp and scannable at any size, from business cards to billboards.
-              </p>
-            </div>
-          </div>
-          
-          <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-500">
-            <p><strong>Note for Designers:</strong> Because this tool runs locally in your browser, you can generate as many high-resolution codes as you need without hitting any paywalls or limits. The "Vector SVG" output is fully editable in software like Adobe Illustrator or Figma.</p>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="mt-20 border-t border-slate-200 pt-8 pb-12 text-center md:text-left">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
-                 <div className="group">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform duration-200">
-                    <rect width="32" height="32" rx="8" fill="#4f46e5"/>
-                    <path fill="white" d="M7 7h6v6H7zM19 7h6v6h-6zM7 19h6v6H7zM19 19h2v2h-2zM23 19h2v2h-2zM19 23h2v2h-2zM23 23h2v2h-2z"/>
-                  </svg>
-                </div>
-                <span className="font-bold text-lg text-slate-800">SVG QR</span>
-              </div>
-              <p className="text-sm text-slate-500 max-w-xs mx-auto md:mx-0 leading-relaxed">
-                The free, privacy-first vector QR code generator. 
-                Built for designers, developers, and everyone who hates sign-up forms.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-slate-900 mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-slate-500">
-                <li>
-                  <a href="/privacy.html" onClick={(e) => { e.preventDefault(); navigateTo('privacy'); }} className="hover:text-indigo-600 transition-colors cursor-pointer">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="/terms.html" onClick={(e) => { e.preventDefault(); navigateTo('terms'); }} className="hover:text-indigo-600 transition-colors cursor-pointer">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="/privacy.html#cookies" onClick={(e) => { e.preventDefault(); navigateTo('privacy', 'cookies'); }} className="hover:text-indigo-600 transition-colors cursor-pointer">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-slate-900 mb-4">Connect</h4>
-              <ul className="space-y-2 text-sm text-slate-500">
-                <li><a href="https://github.com/fmayor/QR-generator" target="_blank" rel="noreferrer" className="hover:text-indigo-600 transition-colors">GitHub</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} SVG-QR.com. All rights reserved.
-          </div>
-        </footer>
+        <FAQSection />
+        <HowToUseSection />
+        <Footer onNavigate={navigateTo} />
       </div>
 
       {/* Cookie Consent Banner */}

@@ -25,7 +25,7 @@ const BG_COLORS = [
   { name: 'Dark', value: '#1e293b' },
 ];
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOptions }) => {
+export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptions }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFgColorChange = (color: string) => {
@@ -296,4 +296,4 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
       </div>
     </div>
   );
-};
+});
