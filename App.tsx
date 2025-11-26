@@ -413,6 +413,14 @@ export default function App() {
                   SVGs do not get blurry or pixelated when printed on large surfaces. They are the professional standard for printing.
                 </p>
               </div>
+
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">Can I use these QR codes for commercial purposes?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Absolutely. The QR codes generated here are yours forever. There are no time limits, scan limits, or hidden tracking. 
+                  You can use them for business cards, product packaging, or marketing campaigns without any restrictions.
+                </p>
+              </div>
             </div>
           </div>
         </section>
