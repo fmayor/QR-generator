@@ -118,9 +118,6 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         const code = jsQR(imageData.data, imageData.width, imageData.height);
         
         if (code) {
-          // Check if it matches expected content
-          // Note: We use strict equality here. Sometimes encodings might vary slightly
-          // but for generated content it should match.
           resolve(code.data === expectedContent);
         } else {
           resolve(false);
@@ -136,14 +133,73 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
   });
 };
 
-export const downloadPDF = (dataUrl: string, filename: string = 'qrcode') => {
+export const downloadPDF = (text: string, options: QROptions, filename: string = 'qrcode') => {
   const doc = new jsPDF();
   
-  // Center image
-  const x = (doc.internal.pageSize.getWidth() - 100) / 2;
-  const y = (doc.internal.pageSize.getHeight() - 100) / 2;
+  // Create raw QR modules to allow vector drawing
+  const qr = QRCode.create(text, { 
+    errorCorrectionLevel: options.errorCorrectionLevel 
+  });
   
-  doc.addImage(dataUrl, 'PNG', x, y, 100, 100);
+  const rawCount = qr.modules.size;
+  const margin = options.margin;
+  const totalCount = rawCount + (margin * 2);
+  
+  // Size calculations (Center on A4 page, 60% of min dimension)
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const qrSize = Math.min(pageWidth, pageHeight) * 0.6; 
+  const xOffset = (pageWidth - qrSize) / 2;
+  const yOffset = (pageHeight - qrSize) / 2;
+  const cellSize = qrSize / totalCount;
+
+  // Draw Background
+  if (options.color.light) {
+    doc.setFillColor(options.color.light);
+    doc.rect(xOffset, yOffset, qrSize, qrSize, 'F');
+  }
+
+  // Draw Modules (Vector Rectangles)
+  doc.setFillColor(options.color.dark);
+  const modules = qr.modules.data;
+  
+  for (let row = 0; row < rawCount; row++) {
+    for (let col = 0; col < rawCount; col++) {
+      if (modules[row * rawCount + col]) {
+        doc.rect(
+          xOffset + (col + margin) * cellSize,
+          yOffset + (row + margin) * cellSize,
+          cellSize,
+          cellSize,
+          'F'
+        );
+      }
+    }
+  }
+
+  // Overlay Logo
+  if (options.logo) {
+    const sizeMultiplier = options.logoSize || 0.2;
+    const logoSize = qrSize * sizeMultiplier;
+    const logoPos = (qrSize - logoSize) / 2;
+    
+    // Determine format
+    const logoFormat = options.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+    
+    try {
+      doc.addImage(
+        options.logo, 
+        logoFormat, 
+        xOffset + logoPos, 
+        yOffset + logoPos, 
+        logoSize, 
+        logoSize
+      );
+    } catch (e) {
+      console.warn("Could not add logo to PDF", e);
+    }
+  }
+  
   doc.save(`${filename}.pdf`);
 };
 

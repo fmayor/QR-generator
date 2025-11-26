@@ -336,7 +336,7 @@ export default function App() {
                   SVG
                 </button>
                 <button
-                  onClick={() => downloadPDF(qrDataUrl, 'intelli-qr')}
+                  onClick={() => downloadPDF(input, options, 'intelli-qr')}
                   disabled={isReadable === false}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-slate-200 hover:border-rose-500 hover:text-rose-600 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed text-slate-700 rounded-xl font-medium transition-all active:scale-95"
                 >

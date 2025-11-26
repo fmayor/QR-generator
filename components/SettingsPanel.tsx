@@ -30,6 +30,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
+        alert('Please upload a PNG or JPEG image only.');
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -97,7 +102,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
               <div className="p-2 bg-slate-100 rounded-full group-hover:bg-white transition-colors">
                 <ImageIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
               </div>
-              <p className="text-xs text-slate-500 font-medium">Click to upload logo</p>
+              <p className="text-xs text-slate-500 font-medium">Click to upload <br/>(PNG or JPEG)</p>
             </div>
           ) : (
              <div className="space-y-4">
@@ -141,7 +146,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
             type="file" 
             ref={fileInputRef}
             onChange={handleLogoUpload}
-            accept="image/*"
+            accept="image/png, image/jpeg, image/jpg"
             className="hidden"
           />
         </div>
