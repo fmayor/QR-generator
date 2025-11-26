@@ -21,7 +21,8 @@ import {
   User,
   Calendar,
   Bitcoin,
-  HelpCircle
+  HelpCircle,
+  Copy
 } from 'lucide-react';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<'success' | 'fallback' | null>(null);
   const [isReadable, setIsReadable] = useState<boolean | null>(true);
+  const [copySuccess, setCopySuccess] = useState(false);
   
   const hasApiKey = !!process.env.API_KEY;
   
@@ -111,6 +113,33 @@ export default function App() {
     link.href = qrDataUrl;
     link.download = 'qrcode-easy.png';
     link.click();
+  };
+
+  const handleCopy = async () => {
+    if (!qrDataUrl) return;
+    try {
+      // Synchronous Blob creation to ensure we stay within the user activation window.
+      // Fetching a Data URL can be async enough to lose the "user gesture" context in strict browsers.
+      const byteString = atob(qrDataUrl.split(',')[1]);
+      const mimeString = qrDataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [mimeString]: blob,
+        }),
+      ]);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (e) {
+      console.error("Failed to copy to clipboard", e);
+      // Fallback could be implemented here, but typically this error is final if permissions are denied
+    }
   };
 
   return (
@@ -338,7 +367,15 @@ export default function App() {
                 </div>
               )}
 
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+                <button
+                  onClick={handleCopy}
+                  disabled={!qrDataUrl}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-slate-200 hover:border-indigo-500 hover:text-indigo-600 disabled:border-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed text-slate-700 rounded-xl font-medium transition-all active:scale-95"
+                >
+                  {copySuccess ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  {copySuccess ? 'Copied' : 'Copy'}
+                </button>
                 <button
                   onClick={handleDownloadPNG}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-lg shadow-slate-200 active:scale-95"
