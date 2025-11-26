@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wifi, User, Calendar, Bitcoin, MapPin, Globe, Mail, Phone, Briefcase } from 'lucide-react';
+import { Wifi, User, Calendar, Bitcoin, MapPin, Globe, Mail, Phone, Briefcase, AlertCircle } from 'lucide-react';
 
 interface FormProps {
   onChange: (payload: string) => void;
@@ -176,19 +176,56 @@ export const EventForm: React.FC<FormProps> = ({ onChange }) => {
     description: ''
   });
 
+  const isInvalidDate = data.start && data.end && new Date(data.start) > new Date(data.end);
+
   useEffect(() => {
     // Helper to format date as YYYYMMDDTHHmm00
     const fmt = (d: string) => d ? d.replace(/[-:]/g, '').replace(' ', 'T') + '00' : '';
 
-    const payload = `BEGIN:VEVENT
+    const payload = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//EasyQR//EN
+BEGIN:VEVENT
 SUMMARY:${data.title}
 LOCATION:${data.location}
 DTSTART:${fmt(data.start)}
 DTEND:${fmt(data.end)}
 DESCRIPTION:${data.description}
-END:VEVENT`;
+END:VEVENT
+END:VCALENDAR`;
     onChange(payload);
   }, [data, onChange]);
+
+  const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStart = e.target.value;
+    
+    setData(prev => {
+      const next = { ...prev, start: newStart };
+      
+      // Smart Auto-Fix: 
+      // If user sets a start date, and the end date is either empty OR invalid (before start),
+      // automatically set end date to start + 1 hour.
+      if (newStart) {
+        const startDate = new Date(newStart);
+        const currentEnd = next.end ? new Date(next.end) : null;
+        
+        if (!currentEnd || currentEnd <= startDate) {
+           const nextHour = new Date(startDate.getTime() + 60 * 60 * 1000);
+           
+           // Manually format to YYYY-MM-DDTHH:mm to preserve local time
+           const pad = (n: number) => n.toString().padStart(2, '0');
+           const y = nextHour.getFullYear();
+           const m = pad(nextHour.getMonth() + 1);
+           const d = pad(nextHour.getDate());
+           const h = pad(nextHour.getHours());
+           const min = pad(nextHour.getMinutes());
+           
+           next.end = `${y}-${m}-${d}T${h}:${min}`;
+        }
+      }
+      return next;
+    });
+  };
 
   const update = (field: string, value: string) => setData(prev => ({ ...prev, [field]: value }));
 
@@ -212,17 +249,33 @@ END:VEVENT`;
           <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
           <div className="relative">
              <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-             <input type="datetime-local" value={data.start} onChange={e => update('start', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+             <input type="datetime-local" value={data.start} onChange={handleStartChange} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
           <div className="relative">
              <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-             <input type="datetime-local" value={data.end} onChange={e => update('end', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+             <input 
+              type="datetime-local" 
+              value={data.end} 
+              onChange={e => update('end', e.target.value)} 
+              className={`w-full pl-10 p-2.5 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-colors ${
+                isInvalidDate 
+                  ? 'border-rose-300 bg-rose-50 text-rose-700 focus:ring-rose-500' 
+                  : 'border-slate-200'
+              }`} 
+             />
           </div>
         </div>
       </div>
+
+      {isInvalidDate && (
+        <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-100 animate-in fade-in slide-in-from-top-1">
+          <AlertCircle className="w-3 h-3 shrink-0" />
+          <span>End time cannot be before start time.</span>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>

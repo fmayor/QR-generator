@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIResponse } from "../types";
 
@@ -43,7 +44,7 @@ export const interpretInput = async (input: string): Promise<AIResponse> => {
       
       Detect intents such as:
       1. WiFi network (Format: WIFI:S:SSID;T:WPA;P:password;;) - Infer WPA if not specified.
-      2. Calendar Event (Format: BEGIN:VEVENT...END:VEVENT) - Calculate relative dates (e.g., "next friday") based on the current reference date. Ensure standard iCal format with DTSTART, DTEND (default 1h if not specified), SUMMARY, LOCATION.
+      2. Calendar Event (Format: BEGIN:VCALENDAR...BEGIN:VEVENT...END:VEVENT...END:VCALENDAR) - Calculate relative dates (e.g., "next friday") based on the current reference date. Ensure standard iCal format with DTSTART, DTEND (default 1h if not specified), SUMMARY, LOCATION.
       3. Cryptocurrency (Format: bitcoin:address or ethereum:address) - Detect ETH (0x...) or BTC addresses.
       4. Contact/vCard (Format: BEGIN:VCARD...END:VCARD) - Extract details if user pastes a messy signature.
       5. Email (Format: mailto:email@example.com?subject=...)
