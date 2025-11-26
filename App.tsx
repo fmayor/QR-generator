@@ -33,7 +33,10 @@ export default function App() {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<'success' | 'fallback' | null>(null);
+  
   const [isReadable, setIsReadable] = useState<boolean | null>(true);
+  const [verificationError, setVerificationError] = useState<'logo' | 'contrast' | null>(null);
+  
   const [copySuccess, setCopySuccess] = useState(false);
   
   const hasApiKey = !!process.env.API_KEY;
@@ -66,17 +69,50 @@ export default function App() {
       setQrDataUrl(dataUrl);
       setQrSvg(svg);
       
-      // Verify readability if there is a logo or custom settings that might break it.
-      // We force verification using 'square' style because jsQR (the verification library) 
-      // often fails on 'dots' even if they are valid, but we still want to catch contrast/logo issues.
-      if (options.logo || options.color.dark !== '#000000' || options.color.light !== '#ffffff' || options.style !== 'square') {
-        const verifyOptions = { ...options, style: 'square' as const };
-        const verifyUrl = await generateQRDataURL(input, verifyOptions);
+      // Determine if we need to run verification logic
+      const needsVerification = options.logo || options.color.dark !== '#000000' || options.color.light !== '#ffffff' || options.style !== 'square';
+
+      if (needsVerification) {
+        let errorType: 'logo' | 'contrast' | null = null;
         
-        const readable = await verifyQRCode(verifyUrl, input);
-        setIsReadable(readable);
+        // 1. Geometry Check: Black & White + Logo
+        // This isolates the logo obstruction issue. We force B/W and Square style to give the 
+        // scanner the best possible chance. If this fails, the logo is simply too big or 
+        // blocking critical areas, regardless of color.
+        if (options.logo) {
+           const geometryOptions = { 
+             ...options, 
+             style: 'square' as const,
+             color: { dark: '#000000', light: '#ffffff' } 
+           };
+           const geometryUrl = await generateQRDataURL(input, geometryOptions);
+           const geometryReadable = await verifyQRCode(geometryUrl, input);
+           if (!geometryReadable) {
+             errorType = 'logo';
+           }
+        }
+
+        // 2. Contrast Check: User Colors + No Logo
+        // If the geometry is fine (or no logo exists), we isolate the color contrast.
+        // We verify a "clean" version of the QR code with the user's colors.
+        if (!errorType) {
+           const colorOptions = { 
+             ...options, 
+             style: 'square' as const,
+             logo: null 
+           };
+           const colorUrl = await generateQRDataURL(input, colorOptions);
+           const contrastReadable = await verifyQRCode(colorUrl, input);
+           if (!contrastReadable) {
+             errorType = 'contrast';
+           }
+        }
+
+        setVerificationError(errorType);
+        setIsReadable(errorType === null);
       } else {
         setIsReadable(true);
+        setVerificationError(null);
       }
       
     } catch (e) {
@@ -119,7 +155,6 @@ export default function App() {
     if (!qrDataUrl) return;
     try {
       // Synchronous Blob creation to ensure we stay within the user activation window.
-      // Fetching a Data URL can be async enough to lose the "user gesture" context in strict browsers.
       const byteString = atob(qrDataUrl.split(',')[1]);
       const mimeString = qrDataUrl.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
@@ -138,7 +173,6 @@ export default function App() {
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (e) {
       console.error("Failed to copy to clipboard", e);
-      // Fallback could be implemented here, but typically this error is final if permissions are denied
     }
   };
 
@@ -242,7 +276,7 @@ export default function App() {
                 </div>
               )}
               
-              {/* AI Feedback (Only show in AI mode and if we have a summary) */}
+              {/* AI Feedback */}
               {mode === 'ai' && aiSummary && (
                 <div className={`mt-4 p-3 rounded-lg flex items-start gap-3 border ${
                   aiStatus === 'success' 
@@ -312,7 +346,7 @@ export default function App() {
                    {isReadable === false && (
                      <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
                        <AlertTriangle className="w-3 h-3" /> 
-                       {options.logo ? 'Logo Obstructing' : 'Low Contrast'}
+                       {verificationError === 'logo' ? 'Logo Obstructing' : 'Low Contrast'}
                      </span>
                    )}
                    {isReadable === true && options.logo && (
@@ -349,9 +383,9 @@ export default function App() {
                 <div className="mt-4 w-full p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                   <div className="text-xs text-amber-700 leading-relaxed space-y-1">
-                    {options.logo ? (
+                    {verificationError === 'logo' ? (
                       <>
-                        <p><strong>Logo Issue Detected:</strong> The logo may be blocking data.</p>
+                        <p><strong>Logo Issue Detected:</strong> The logo is obstructing too much data.</p>
                         <ul className="list-disc pl-4 space-y-0.5 mt-1 opacity-90">
                            <li>Decrease <strong>Logo Size</strong> using the slider.</li>
                            <li>Increase <strong>Error Correction</strong> to 'H' or 'Q'.</li>

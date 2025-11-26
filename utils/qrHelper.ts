@@ -214,13 +214,24 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         let minLuma = 255;
         let maxLuma = 0;
 
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (luma < minLuma) minLuma = luma;
-          if (luma > maxLuma) maxLuma = luma;
+        // Sampling: Only check the top-left quadrant for calculating the contrast threshold.
+        // This ensures that an image logo (usually centered) with colors different from the 
+        // QR code doesn't skew the min/max luma.
+        const sampleW = Math.floor(w / 2);
+        const sampleH = Math.floor(h / 2);
+
+        for (let y = 0; y < sampleH; y++) {
+          for (let x = 0; x < sampleW; x++) {
+            const i = (y * w + x) * 4;
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            // Calculate Luma (Rec. 601)
+            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+            
+            if (luma < minLuma) minLuma = luma;
+            if (luma > maxLuma) maxLuma = luma;
+          }
         }
 
         const threshold = (minLuma + maxLuma) / 2;
