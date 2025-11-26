@@ -25,22 +25,65 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
     const size = modules.size;
     const margin = options.margin;
     
-    // Calculate sizing
-    const totalSize = size + (margin * 2);
-    // Use high resolution for canvas
+    // Size of the internal QR matrix (including margin)
+    const rawQrSize = size + (margin * 2);
+    
     const pixelSize = 20; // Internal pixels per module
-    const canvasSize = totalSize * pixelSize;
+    
+    // Determine canvas dimensions based on frame shape
+    let canvasWidth = rawQrSize * pixelSize;
+    let canvasHeight = rawQrSize * pixelSize;
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    // If Circle, we need a larger canvas to fit the square QR inside the circle without cutting corners.
+    // Diagonal of square = side * sqrt(2). 
+    // We add a little extra padding (1.1x) to be safe and look good.
+    if (options.frameShape === 'circle') {
+      const diagonal = rawQrSize * Math.sqrt(2);
+      const dimension = Math.ceil(diagonal * pixelSize);
+      canvasWidth = dimension;
+      canvasHeight = dimension;
+      
+      // Calculate offset to center the QR code in the new larger canvas
+      offsetX = (canvasWidth - (rawQrSize * pixelSize)) / 2;
+      offsetY = (canvasHeight - (rawQrSize * pixelSize)) / 2;
+    }
 
     const canvas = document.createElement('canvas');
-    canvas.width = canvasSize;
-    canvas.height = canvasSize;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
     const ctx = canvas.getContext('2d');
 
     if (!ctx) return '';
 
-    // 2. Draw Background
+    // Clear canvas for transparency
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    // 2. Draw Background Shape
     ctx.fillStyle = options.color.light;
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    
+    if (options.frameShape === 'circle') {
+      ctx.beginPath();
+      ctx.arc(canvasWidth / 2, canvasHeight / 2, canvasWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.clip(); // Clip further drawing to this circle
+    } else if (options.frameShape === 'rounded') {
+      // RoundRect with radius approx 10% of size
+      ctx.beginPath();
+      const radius = canvasWidth * 0.1; 
+      if (ctx.roundRect) {
+         ctx.roundRect(0, 0, canvasWidth, canvasHeight, radius);
+      } else {
+         // Fallback for older browsers if needed, though most support roundRect now
+         ctx.rect(0, 0, canvasWidth, canvasHeight);
+      }
+      ctx.fill();
+      ctx.clip();
+    } else {
+      // Standard Square
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    }
 
     // 3. Draw Modules
     ctx.fillStyle = options.color.dark;
@@ -51,8 +94,8 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
         if (modules.get(r, c)) {
-          const x = (c + margin) * pixelSize;
-          const y = (r + margin) * pixelSize;
+          const x = offsetX + (c + margin) * pixelSize;
+          const y = offsetY + (r + margin) * pixelSize;
           
           if (isFinderPattern(r, c, size) || style === 'square') {
             // Default Square
@@ -82,8 +125,7 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
       const logoImage = new Image();
 
       qrImage.onload = () => {
-        // We need to respect the requested output width here, 
-        // effectively resizing the high-res canvas down or up.
+        // We render onto a new canvas of the requested output options.width
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = options.width;
         finalCanvas.height = options.width;
@@ -94,19 +136,30 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
            return;
         }
 
-        // Draw the QR
+        // Draw the QR (which now has the shape)
         fCtx.drawImage(qrImage, 0, 0, options.width, options.width);
 
         logoImage.onload = () => {
           const sizeMultiplier = options.logoSize || 0.2;
-          const logoSize = options.width * sizeMultiplier;
-          const xy = (options.width - logoSize) / 2;
+          const maxLogoSize = options.width * sizeMultiplier;
           
-          // Optional: Add whitespace around logo?
-          // fCtx.fillStyle = options.color.light;
-          // fCtx.fillRect(xy - 5, xy - 5, logoSize + 10, logoSize + 10);
-
-          fCtx.drawImage(logoImage, xy, xy, logoSize, logoSize);
+          // Calculate Aspect Ratio to prevent distortion
+          const aspect = logoImage.width / logoImage.height;
+          let drawWidth = maxLogoSize;
+          let drawHeight = maxLogoSize;
+          
+          if (aspect > 1) {
+            // Landscape: Width matches box, Height is reduced
+            drawHeight = maxLogoSize / aspect;
+          } else {
+            // Portrait or Square: Height matches box, Width is reduced
+            drawWidth = maxLogoSize * aspect;
+          }
+          
+          const x = (options.width - drawWidth) / 2;
+          const y = (options.width - drawHeight) / 2;
+          
+          fCtx.drawImage(logoImage, x, y, drawWidth, drawHeight);
           resolve(finalCanvas.toDataURL());
         };
 
@@ -129,14 +182,38 @@ export const generateQRSVG = async (text: string, options: QROptions): Promise<s
     const modules = qr.modules;
     const size = modules.size;
     const margin = options.margin;
-    const totalSize = size + (margin * 2);
     
-    // We'll define viewbox = totalSize, then users can scale the SVG arbitrarily
-    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalSize} ${totalSize}" shape-rendering="crispEdges">`;
+    // Internal coordinate system size
+    const rawQrSize = size + (margin * 2);
     
-    // Background
-    svgContent += `<rect width="100%" height="100%" fill="${options.color.light}" />`;
+    let viewBoxSize = rawQrSize;
+    let offset = 0;
+
+    // Handle Circle Frame scaling
+    if (options.frameShape === 'circle') {
+       // Using same math as canvas: scale to fit diagonal
+       const diagonal = rawQrSize * Math.sqrt(2);
+       // We'll just increase viewBox dimensions
+       viewBoxSize = diagonal; 
+       offset = (viewBoxSize - rawQrSize) / 2;
+    }
+
+    let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}" shape-rendering="${options.style === 'dots' ? 'auto' : 'crispEdges'}">`;
     
+    // Background Shape
+    if (options.frameShape === 'circle') {
+      const r = viewBoxSize / 2;
+      svgContent += `<circle cx="${r}" cy="${r}" r="${r}" fill="${options.color.light}" />`;
+    } else if (options.frameShape === 'rounded') {
+      const radius = viewBoxSize * 0.1;
+      svgContent += `<rect x="0" y="0" width="${viewBoxSize}" height="${viewBoxSize}" rx="${radius}" fill="${options.color.light}" />`;
+    } else {
+      svgContent += `<rect width="100%" height="100%" fill="${options.color.light}" />`;
+    }
+    
+    // Group for QR modules to handle offset if needed
+    svgContent += `<g transform="translate(${offset}, ${offset})">`;
+
     const style = options.style || 'square';
     const dotScale = 0.8;
 
@@ -158,14 +235,17 @@ export const generateQRSVG = async (text: string, options: QROptions): Promise<s
         }
       }
     }
+    svgContent += `</g>`;
 
     // Logo embedding
     if (options.logo) {
       const sizeMultiplier = options.logoSize || 0.2;
-      const logoSize = totalSize * sizeMultiplier;
-      const pos = (totalSize - logoSize) / 2;
+      // Logo size relative to the VIEWBOX
+      const maxLogoSize = viewBoxSize * sizeMultiplier;
+      const pos = (viewBoxSize - maxLogoSize) / 2;
       
-      svgContent += `<image href="${options.logo}" x="${pos}" y="${pos}" height="${logoSize}" width="${logoSize}" />`;
+      // Use preserveAspectRatio to fit the image inside the square box without distortion
+      svgContent += `<image href="${options.logo}" x="${pos}" y="${pos}" height="${maxLogoSize}" width="${maxLogoSize}" preserveAspectRatio="xMidYMid meet" />`;
     }
 
     svgContent += '</svg>';
@@ -176,22 +256,32 @@ export const generateQRSVG = async (text: string, options: QROptions): Promise<s
   }
 };
 
-export const verifyQRCode = async (dataUrl: string, expectedContent: string): Promise<boolean> => {
+export const verifyQRCode = async (dataUrl: string, expectedContent: string, simulationColor?: string): Promise<boolean> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
+      // Create canvas with padding if simulation needed
+      // If simulationColor is present, we pad the canvas and fill it with that color.
+      // This simulates placing the QR code on a background of that color.
+      // If the QR code has 0 margin, the modules will touch this background.
+      const padding = simulationColor ? 50 : 0;
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.width + (padding * 2);
+      canvas.height = img.height + (padding * 2);
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
         resolve(false);
         return;
       }
+
+      if (simulationColor) {
+        ctx.fillStyle = simulationColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
       
-      // Draw image onto canvas
-      ctx.drawImage(img, 0, 0);
+      // Draw image centered
+      ctx.drawImage(img, padding, padding);
       
       const w = canvas.width;
       const h = canvas.height;
@@ -215,8 +305,6 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         let maxLuma = 0;
 
         // Sampling: Only check the top-left quadrant for calculating the contrast threshold.
-        // This ensures that an image logo (usually centered) with colors different from the 
-        // QR code doesn't skew the min/max luma.
         const sampleW = Math.floor(w / 2);
         const sampleH = Math.floor(h / 2);
 
@@ -226,7 +314,6 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
-            // Calculate Luma (Rec. 601)
             const luma = 0.299 * r + 0.587 * g + 0.114 * b;
             
             if (luma < minLuma) minLuma = luma;
@@ -234,6 +321,8 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
           }
         }
 
+        // If the range is too small, we might be looking at a flat color (like margin 0 bleeding into background)
+        // But we attempt enhancement anyway.
         const threshold = (minLuma + maxLuma) / 2;
 
         for (let i = 0; i < data.length; i += 4) {
@@ -281,15 +370,42 @@ export const downloadPDF = (text: string, options: QROptions, filename: string =
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const qrSize = Math.min(pageWidth, pageHeight) * 0.6; 
+  
+  // Center alignment
   const xOffset = (pageWidth - qrSize) / 2;
   const yOffset = (pageHeight - qrSize) / 2;
-  const cellSize = qrSize / totalCount;
-
-  // Background
+  
+  // Background Shape for PDF
   if (options.color.light) {
     doc.setFillColor(options.color.light);
-    doc.rect(xOffset, yOffset, qrSize, qrSize, 'F');
+    if (options.frameShape === 'circle') {
+       // Draw circle
+       const r = qrSize / 2;
+       doc.circle(xOffset + r, yOffset + r, r, 'F');
+    } else if (options.frameShape === 'rounded') {
+       // Draw rounded rect
+       const r = qrSize * 0.1;
+       doc.roundedRect(xOffset, yOffset, qrSize, qrSize, r, r, 'F');
+    } else {
+       // Standard square
+       doc.rect(xOffset, yOffset, qrSize, qrSize, 'F');
+    }
   }
+
+  // Calculate cell size
+  let drawSize = qrSize;
+  let drawXOffset = xOffset;
+  let drawYOffset = yOffset;
+
+  if (options.frameShape === 'circle') {
+     const side = qrSize / Math.sqrt(2);
+     const safeSide = side * 0.95; 
+     drawSize = safeSide;
+     drawXOffset = xOffset + (qrSize - safeSide) / 2;
+     drawYOffset = yOffset + (qrSize - safeSide) / 2;
+  }
+
+  const cellSize = drawSize / totalCount;
 
   // Modules
   doc.setFillColor(options.color.dark);
@@ -300,13 +416,12 @@ export const downloadPDF = (text: string, options: QROptions, filename: string =
   for (let r = 0; r < rawCount; r++) {
     for (let c = 0; c < rawCount; c++) {
       if (modules.get(r, c)) {
-        const x = xOffset + (c + margin) * cellSize;
-        const y = yOffset + (r + margin) * cellSize;
+        const x = drawXOffset + (c + margin) * cellSize;
+        const y = drawYOffset + (r + margin) * cellSize;
         
         if (isFinderPattern(r, c, rawCount) || style === 'square') {
            doc.rect(x, y, cellSize, cellSize, 'F');
         } else if (style === 'dots') {
-           // circle(x, y, r, style) - x,y are center
            const cx = x + cellSize / 2;
            const cy = y + cellSize / 2;
            const radius = (cellSize * dotScale) / 2;
@@ -319,12 +434,35 @@ export const downloadPDF = (text: string, options: QROptions, filename: string =
   // Logo
   if (options.logo) {
     const sizeMultiplier = options.logoSize || 0.2;
-    const logoSize = qrSize * sizeMultiplier;
-    const logoPos = (qrSize - logoSize) / 2;
+    const maxLogoSize = qrSize * sizeMultiplier;
+    
+    // The logo box is centered in the visual QR area
+    const boxX = xOffset + (qrSize - maxLogoSize) / 2;
+    const boxY = yOffset + (qrSize - maxLogoSize) / 2;
+
     const logoFormat = options.logo.startsWith('data:image/png') ? 'PNG' : 'JPEG';
     
     try {
-      doc.addImage(options.logo, logoFormat, xOffset + logoPos, yOffset + logoPos, logoSize, logoSize);
+      // Get dimensions to preserve aspect ratio
+      const props = doc.getImageProperties(options.logo);
+      const aspect = props.width / props.height;
+      
+      let drawW = maxLogoSize;
+      let drawH = maxLogoSize;
+      
+      if (aspect > 1) {
+         // Landscape
+         drawH = maxLogoSize / aspect;
+      } else {
+         // Portrait
+         drawW = maxLogoSize * aspect;
+      }
+      
+      // Center the image inside the calculated box
+      const finalX = boxX + (maxLogoSize - drawW) / 2;
+      const finalY = boxY + (maxLogoSize - drawH) / 2;
+
+      doc.addImage(options.logo, logoFormat, finalX, finalY, drawW, drawH);
     } catch (e) {
       console.warn("Could not add logo to PDF", e);
     }

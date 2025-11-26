@@ -36,6 +36,7 @@ export default function App() {
   
   const [isReadable, setIsReadable] = useState<boolean | null>(true);
   const [verificationError, setVerificationError] = useState<'logo' | 'contrast' | null>(null);
+  const [verificationWarning, setVerificationWarning] = useState<'margin' | null>(null);
   
   const [copySuccess, setCopySuccess] = useState(false);
   
@@ -51,6 +52,7 @@ export default function App() {
     errorCorrectionLevel: 'M',
     logoSize: 0.2,
     style: 'square',
+    frameShape: 'square',
   });
 
   // Debounce input to avoid excessive rendering
@@ -69,50 +71,73 @@ export default function App() {
       setQrDataUrl(dataUrl);
       setQrSvg(svg);
       
+      // Reset states
+      setVerificationWarning(null);
+
       // Determine if we need to run verification logic
-      const needsVerification = options.logo || options.color.dark !== '#000000' || options.color.light !== '#ffffff' || options.style !== 'square';
+      const needsVerification = options.logo || options.color.dark !== '#000000' || options.color.light !== '#ffffff' || options.style !== 'square' || options.margin === 0;
 
       if (needsVerification) {
         let errorType: 'logo' | 'contrast' | null = null;
+        let warningType: 'margin' | null = null;
         
         // 1. Geometry Check: Black & White + Logo
-        // This isolates the logo obstruction issue. We force B/W and Square style to give the 
-        // scanner the best possible chance. If this fails, the logo is simply too big or 
-        // blocking critical areas, regardless of color.
-        if (options.logo) {
+        // We do NOT override frameShape here. If the user selected 'circle', the circle background
+        // provides natural margin, so we want the verifier to see that.
+        if (options.logo || options.margin === 0) {
            const geometryOptions: QROptions = { 
              ...options, 
              style: 'square',
-             color: { dark: '#000000', light: '#ffffff' } 
+             color: { dark: '#000000', light: '#ffffff' },
+             // Keep user's frameShape to correctly validate circular frames with 0 internal margin
            };
            const geometryUrl = await generateQRDataURL(input, geometryOptions);
-           const geometryReadable = await verifyQRCode(geometryUrl, input);
+           
+           // Strict Check: Simulate hostile black background
+           // If margin is 0 and frame is square, modules will touch black background -> fail.
+           const geometryReadable = await verifyQRCode(geometryUrl, input, '#000000');
+           
            if (!geometryReadable) {
-             errorType = 'logo';
+             // Fallback: If strict check failed, check if it's just a margin issue.
+             // We test on a WHITE background. If this passes, the QR code is valid but needs a light background.
+             if (options.margin === 0) {
+                const lenientReadable = await verifyQRCode(geometryUrl, input, '#ffffff');
+                if (lenientReadable) {
+                  warningType = 'margin';
+                } else {
+                  errorType = 'logo'; // Failed even on white background -> real geometry/logo issue
+                }
+             } else {
+                errorType = 'logo';
+             }
            }
         }
 
         // 2. Contrast Check: User Colors + No Logo
-        // If the geometry is fine (or no logo exists), we isolate the color contrast.
-        // We verify a "clean" version of the QR code with the user's colors.
+        // Only run if we don't already have a fatal error
         if (!errorType) {
            const colorOptions: QROptions = { 
              ...options, 
              style: 'square',
-             logo: null 
+             logo: null,
+             // Keep user's frameShape
            };
            const colorUrl = await generateQRDataURL(input, colorOptions);
-           const contrastReadable = await verifyQRCode(colorUrl, input);
+           
+           // Check contrast against the QR's own foreground color to detect bleeding
+           const contrastReadable = await verifyQRCode(colorUrl, input, options.color.dark);
            if (!contrastReadable) {
              errorType = 'contrast';
            }
         }
 
         setVerificationError(errorType);
+        setVerificationWarning(warningType);
         setIsReadable(errorType === null);
       } else {
         setIsReadable(true);
         setVerificationError(null);
+        setVerificationWarning(null);
       }
       
     } catch (e) {
@@ -147,7 +172,7 @@ export default function App() {
   const handleDownloadPNG = () => {
     const link = document.createElement('a');
     link.href = qrDataUrl;
-    link.download = 'qrcode-easy.png';
+    link.download = 'qrcode-svg-qr.png';
     link.click();
   };
 
@@ -338,39 +363,45 @@ export default function App() {
             
             {/* Preview Card */}
             <div className="bg-white rounded-2xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300">
-              <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${isReadable ? 'from-indigo-500 via-purple-500 to-pink-500' : 'from-amber-500 to-rose-500'}`}></div>
+              <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${
+                isReadable === false ? 'from-rose-500 to-amber-500' :
+                verificationWarning ? 'from-amber-400 to-yellow-400' :
+                'from-indigo-500 via-purple-500 to-pink-500'
+              }`}></div>
               
               <div className="mb-6 text-center w-full">
                  <div className="flex items-center justify-center gap-2">
                    <h2 className="text-lg font-semibold text-slate-800">Live Preview</h2>
                    {isReadable === false && (
-                     <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                     <span className="bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
                        <AlertTriangle className="w-3 h-3" /> 
-                       {verificationError === 'logo' ? 'Logo Obstructing' : 'Low Contrast'}
+                       {verificationError === 'logo' ? 'Unreadable' : 'Low Contrast'}
                      </span>
                    )}
-                   {isReadable === true && options.logo && (
+                   {isReadable === true && verificationWarning === 'margin' && (
+                      <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Low Margin
+                      </span>
+                   )}
+                   {isReadable === true && !verificationWarning && options.logo && (
                      <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
                        <CheckCircle2 className="w-3 h-3" /> Valid
                      </span>
                    )}
                  </div>
                  <p className="text-sm text-slate-400">
-                   {isReadable === false ? 'Scanner validation failed' : 'Scannable in real-time'}
+                   {isReadable === false ? 'Scanner validation failed' : verificationWarning ? 'Code is valid but edges are tight' : 'Scannable in real-time'}
                  </p>
               </div>
 
               <div 
-                className={`bg-white p-4 rounded-xl shadow-inner border transition-colors duration-300 ${isReadable === false ? 'border-amber-200 bg-amber-50' : 'border-slate-100'}`}
-                style={{
-                  boxShadow: `0 20px 40px -10px ${isReadable === false ? '#f59e0b' : options.color.dark}33`
-                }}
+                className={`bg-transparent p-4 rounded-xl flex items-center justify-center`}
               >
                 {qrDataUrl ? (
                    <img 
                     src={qrDataUrl} 
                     alt="QR Code" 
-                    className={`w-64 h-64 md:w-72 md:h-72 object-contain transition-all duration-300`}
+                    className={`w-64 h-64 md:w-72 md:h-72 object-contain transition-all duration-300 drop-shadow-lg`}
                    />
                 ) : (
                   <div className="w-64 h-64 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
@@ -379,24 +410,37 @@ export default function App() {
                 )}
               </div>
               
+              {/* Critical Error Box */}
               {isReadable === false && (
-                <div className="mt-4 w-full p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-                  <div className="text-xs text-amber-700 leading-relaxed space-y-1">
+                <div className="mt-4 w-full p-3 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                  <div className="text-xs text-rose-700 leading-relaxed space-y-1">
                     {verificationError === 'logo' ? (
                       <>
-                        <p><strong>Logo Issue Detected:</strong> The logo is obstructing too much data.</p>
+                        <p><strong>Obstructed or Invalid:</strong> The code cannot be read.</p>
                         <ul className="list-disc pl-4 space-y-0.5 mt-1 opacity-90">
                            <li>Decrease <strong>Logo Size</strong> using the slider.</li>
-                           <li>Increase <strong>Error Correction</strong> to 'H' or 'Q'.</li>
+                           <li>Increase <strong>Error Correction</strong> to 'H'.</li>
+                           <li>Increase <strong>Margin Width</strong> if set to zero.</li>
                         </ul>
                       </>
                     ) : (
                       <>
                         <p><strong>Low Contrast Detected:</strong> The scanner cannot distinguish the code.</p>
-                        <p>Try a <strong>darker foreground</strong> or a lighter background to increase contrast.</p>
+                        <p>Try a <strong>darker foreground</strong> on a light background.</p>
                       </>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Warning Box (Soft Error) */}
+              {isReadable === true && verificationWarning === 'margin' && (
+                <div className="mt-4 w-full p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                  <div className="text-xs text-amber-700 leading-relaxed space-y-1">
+                     <p><strong>Low Margin Warning:</strong> This code is readable, but its edges are touching the border.</p>
+                     <p>It may fail if printed on a dark surface. Consider increasing <strong>Margin Width</strong> to 1.</p>
                   </div>
                 </div>
               )}

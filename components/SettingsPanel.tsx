@@ -281,7 +281,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
           </label>
           <input 
             type="range" 
-            min="0" 
+            min="1" 
             max="10" 
             step="1"
             value={options.margin}
@@ -289,7 +289,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
             className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
           <div className="flex justify-between text-xs text-slate-400 mt-1">
-            <span>None</span>
+            <span>Narrow</span>
             <span>Wide</span>
           </div>
         </div>

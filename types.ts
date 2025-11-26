@@ -11,6 +11,7 @@ export interface QROptions {
   logo?: string | null;
   logoSize?: number;
   style?: 'square' | 'dots';
+  frameShape?: 'square' | 'rounded' | 'circle';
 }
 
 export interface AIResponse {
