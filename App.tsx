@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [input, setInput] = useState<string>('https://google.com');
+  const [input, setInput] = useState<string>('https://svg-qr.com');
   const [mode, setMode] = useState<GenerationMode>('ai');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [qrSvg, setQrSvg] = useState<string>('');
