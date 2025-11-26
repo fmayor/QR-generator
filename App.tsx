@@ -24,7 +24,9 @@ import {
   Bitcoin,
   HelpCircle,
   Copy,
-  X
+  X,
+  Palette,
+  MousePointer2
 } from 'lucide-react';
 
 type ViewState = 'home' | 'privacy' | 'terms';
@@ -578,6 +580,49 @@ export default function App() {
                 </p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* How to Use Section */}
+        <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 mt-8">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">How to Use This Tool</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="relative pl-4 border-l-2 border-slate-100 hover:border-indigo-500 transition-colors">
+              <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-600 ring-4 ring-white"></span>
+              <h3 className="font-bold text-slate-900 mb-2">1. Choose Content Type</h3>
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                Select the tab that fits your needs. Use <strong>URL</strong> for websites, <strong>WiFi</strong> for easy network access, or <strong>vCard</strong> for digital business cards.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="relative pl-4 border-l-2 border-slate-100 hover:border-indigo-500 transition-colors">
+              <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white"></span>
+              <h3 className="font-bold text-slate-900 mb-2">2. Customize Design</h3>
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                Match your brand by adjusting the <strong>Foreground</strong> and <strong>Background</strong> colors. You can also change the pixel style to "Dots" or "Square" and upload a custom logo to place in the center.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="relative pl-4 border-l-2 border-slate-100 hover:border-indigo-500 transition-colors">
+               <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-200 ring-4 ring-white"></span>
+              <h3 className="font-bold text-slate-900 mb-2">3. Download Vector</h3>
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                For professional printing, always choose <strong>SVG</strong> or <strong>PDF</strong>. These vector formats ensure your QR code remains crisp and scannable at any size, from business cards to billboards.
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-500">
+            <p><strong>Note for Designers:</strong> Because this tool runs locally in your browser, you can generate as many high-resolution codes as you need without hitting any paywalls or limits. The "Vector SVG" output is fully editable in software like Adobe Illustrator or Figma.</p>
           </div>
         </section>
 
