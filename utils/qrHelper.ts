@@ -32,6 +32,7 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
       const logoImage = new Image();
 
       qrImage.onload = () => {
+        // Draw the QR code (which handles its own background from options.color.light)
         ctx.drawImage(qrImage, 0, 0, options.width, options.width);
 
         logoImage.onload = () => {
@@ -111,17 +112,15 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         return;
       }
       
-      // 1. Draw with white background (Basic setup)
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw image onto canvas
       ctx.drawImage(img, 0, 0);
       
       const w = canvas.width;
       const h = canvas.height;
+      const imageData = ctx.getImageData(0, 0, w, h);
       
       // --- PASS 1: STANDARD SCAN ---
       try {
-        const imageData = ctx.getImageData(0, 0, w, h);
         const code = jsQR(imageData.data, w, h, { inversionAttempts: "attemptBoth" });
         if (code && code.data === expectedContent) {
           resolve(true);
@@ -131,32 +130,42 @@ export const verifyQRCode = async (dataUrl: string, expectedContent: string): Pr
         console.warn("Pass 1 failed", e);
       }
 
-      // --- PASS 2: HIGH CONTRAST / BINARIZATION ---
-      // This mimics phone cameras which auto-contrast images.
-      // We essentially force anything "not white" to be black.
+      // --- PASS 2: DYNAMIC CONTRAST BOOST ---
+      // This is robust for Custom Background Colors.
+      // Instead of assuming white background, we find the dynamic range.
       try {
-        const imageData = ctx.getImageData(0, 0, w, h);
         const data = imageData.data;
-        
+        let minLuma = 255;
+        let maxLuma = 0;
+
+        // 1. Find min and max luminance in the image
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
+          const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+          if (luma < minLuma) minLuma = luma;
+          if (luma > maxLuma) maxLuma = luma;
+        }
+
+        // 2. Calculate dynamic threshold
+        const threshold = (minLuma + maxLuma) / 2;
+
+        // 3. Binarize based on dynamic threshold
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const luma = 0.299 * r + 0.587 * g + 0.114 * b;
           
-          // Calculate luminance (perceived brightness)
-          // 255 is white, 0 is black.
-          const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-          
-          // Threshold: If it's darker than pure white (allowing for some anti-aliasing noise), snap to black.
-          // This turns "Light Orange" (which has high luminance but isn't 255) into "Black".
-          if (luminance < 250) { 
-             data[i] = 0;     // R
-             data[i + 1] = 0; // G
-             data[i + 2] = 0; // B
+          if (luma < threshold) { 
+             data[i] = 0;     // Black
+             data[i + 1] = 0; 
+             data[i + 2] = 0; 
           } else {
-             data[i] = 255;
-             data[i + 1] = 255;
-             data[i + 2] = 255;
+             data[i] = 255;   // White
+             data[i + 1] = 255; 
+             data[i + 2] = 255; 
           }
         }
         

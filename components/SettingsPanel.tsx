@@ -1,13 +1,13 @@
 import React, { useRef } from 'react';
 import { QROptions } from '../types';
-import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette } from 'lucide-react';
+import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket } from 'lucide-react';
 
 interface SettingsPanelProps {
   options: QROptions;
   setOptions: React.Dispatch<React.SetStateAction<QROptions>>;
 }
 
-const COLORS = [
+const FG_COLORS = [
   { name: 'Black', value: '#000000' },
   { name: 'Blue', value: '#2563eb' },
   { name: 'Purple', value: '#7c3aed' },
@@ -16,11 +16,24 @@ const COLORS = [
   { name: 'Slate', value: '#334155' },
 ];
 
+const BG_COLORS = [
+  { name: 'White', value: '#ffffff' },
+  { name: 'Light Slate', value: '#f1f5f9' },
+  { name: 'Cream', value: '#fffbeb' },
+  { name: 'Pale Blue', value: '#eff6ff' },
+  { name: 'Mint', value: '#f0fdf4' },
+  { name: 'Dark', value: '#1e293b' },
+];
+
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOptions }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleColorChange = (color: string) => {
+  const handleFgColorChange = (color: string) => {
     setOptions(prev => ({ ...prev, color: { ...prev.color, dark: color } }));
+  };
+
+  const handleBgColorChange = (color: string) => {
+    setOptions(prev => ({ ...prev, color: { ...prev.color, light: color } }));
   };
 
   const handleLevelChange = (level: QROptions['errorCorrectionLevel']) => {
@@ -58,43 +71,83 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
       </div>
 
       <div className="space-y-6">
-        {/* Color Picker */}
-        <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-3">
-            <Droplet className="w-4 h-4" />
-            Foreground Color
-          </label>
-          <div className="flex flex-wrap gap-3">
-            {COLORS.map((c) => (
-              <button
-                key={c.value}
-                onClick={() => handleColorChange(c.value)}
-                className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center
-                  ${options.color.dark === c.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
-                style={{ backgroundColor: c.value }}
-                title={c.name}
-              >
-                {options.color.dark === c.value && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-              </button>
-            ))}
-            
-            {/* Custom Rainbow Picker */}
-            <div className="relative group">
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ring-1 ring-slate-100"
-                style={{ 
-                  background: 'linear-gradient(135deg, #fca5a5 0%, #fcd34d 25%, #86efac 50%, #67e8f9 75%, #c4b5fd 100%)' 
-                }}
-              >
-                <Palette className="w-4 h-4 text-slate-700 opacity-70" />
+        
+        {/* Colors Section */}
+        <div className="space-y-4">
+          {/* Foreground Color */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-3">
+              <Droplet className="w-4 h-4" />
+              Foreground Color
+            </label>
+            <div className="flex flex-wrap gap-3">
+              {FG_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => handleFgColorChange(c.value)}
+                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center border border-slate-100
+                    ${options.color.dark === c.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.name}
+                >
+                  {options.color.dark === c.value && <Check className="w-4 h-4 text-white mix-blend-difference" strokeWidth={3} />}
+                </button>
+              ))}
+              
+              <div className="relative group">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ring-1 ring-slate-100"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #fca5a5 0%, #fcd34d 25%, #86efac 50%, #67e8f9 75%, #c4b5fd 100%)' 
+                  }}
+                >
+                  <Palette className="w-4 h-4 text-slate-700 opacity-70" />
+                </div>
+                <input
+                  type="color"
+                  value={options.color.dark}
+                  onChange={(e) => handleFgColorChange(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                  title="Choose Custom Color"
+                />
               </div>
-              <input
-                type="color"
-                value={options.color.dark}
-                onChange={(e) => handleColorChange(e.target.value)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
-                title="Choose Custom Color"
-              />
+            </div>
+          </div>
+
+          {/* Background Color */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-3">
+              <PaintBucket className="w-4 h-4" />
+              Background Color
+            </label>
+            <div className="flex flex-wrap gap-3">
+              {BG_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => handleBgColorChange(c.value)}
+                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center border border-slate-200
+                    ${options.color.light === c.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.name}
+                >
+                  {options.color.light === c.value && <Check className="w-4 h-4 text-slate-900 mix-blend-difference" strokeWidth={3} />}
+                </button>
+              ))}
+              
+              <div className="relative group">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ring-1 ring-slate-100 bg-white"
+                >
+                  <Palette className="w-4 h-4 text-slate-700 opacity-70" />
+                </div>
+                <input
+                  type="color"
+                  value={options.color.light}
+                  onChange={(e) => handleBgColorChange(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                  title="Choose Custom Background"
+                />
+              </div>
             </div>
           </div>
         </div>
