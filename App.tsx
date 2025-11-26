@@ -276,7 +276,8 @@ export default function App() {
                    <h2 className="text-lg font-semibold text-slate-800">Live Preview</h2>
                    {isReadable === false && (
                      <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                       <AlertTriangle className="w-3 h-3" /> Check Contrast
+                       <AlertTriangle className="w-3 h-3" /> 
+                       {options.logo ? 'Logo Obstructing' : 'Low Contrast'}
                      </span>
                    )}
                    {isReadable === true && options.logo && (
@@ -286,7 +287,7 @@ export default function App() {
                    )}
                  </div>
                  <p className="text-sm text-slate-400">
-                   {isReadable === false ? 'Browser check warning. Verify with phone.' : 'Scannable in real-time'}
+                   {isReadable === false ? 'Scanner validation failed' : 'Scannable in real-time'}
                  </p>
               </div>
 
@@ -313,8 +314,20 @@ export default function App() {
                 <div className="mt-4 w-full p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                   <div className="text-xs text-amber-700 leading-relaxed space-y-1">
-                    <p><strong>Readability Warning:</strong> Our strict browser check couldn't read this code.</p>
-                    <p>Modern phones are often smarter, but to be safe: consider a <strong>darker color</strong> or smaller logo.</p>
+                    {options.logo ? (
+                      <>
+                        <p><strong>Logo Issue Detected:</strong> The logo may be blocking data.</p>
+                        <ul className="list-disc pl-4 space-y-0.5 mt-1 opacity-90">
+                           <li>Decrease <strong>Logo Size</strong> using the slider.</li>
+                           <li>Increase <strong>Error Correction</strong> to 'H' or 'Q'.</li>
+                        </ul>
+                      </>
+                    ) : (
+                      <>
+                        <p><strong>Low Contrast Detected:</strong> The scanner cannot distinguish the code.</p>
+                        <p>Try a <strong>darker foreground</strong> or a lighter background to increase contrast.</p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
