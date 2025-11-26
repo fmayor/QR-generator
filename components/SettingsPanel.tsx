@@ -51,7 +51,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ options, setOption
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-full">
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
       <div className="flex items-center gap-2 mb-6 text-slate-800">
         <Settings className="w-5 h-5" />
         <h2 className="font-semibold text-lg">Customization</h2>
