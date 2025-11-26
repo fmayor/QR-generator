@@ -21,7 +21,8 @@ import {
   Wifi,
   User,
   Calendar,
-  Bitcoin
+  Bitcoin,
+  HelpCircle
 } from 'lucide-react';
 
 export default function App() {
@@ -359,6 +360,63 @@ export default function App() {
 
           </div>
         </main>
+
+        {/* FAQ Section */}
+        <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 mt-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Frequently Asked Questions</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">What is a QR code and why are they useful?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  A QR (Quick Response) code is a two-dimensional barcode that allows smartphones to instantly access information. 
+                  They are incredibly useful for sharing websites, Wi-Fi passwords, contact details (vCards), or event info without typing.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">How to create a Vector QR Code?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Creating a vector QR code is simple. Generate your code using the tools above, then click the "SVG" or "PDF" download buttons. 
+                  These formats save the code as mathematical paths, ensuring it stays perfectly sharp at any size, from business cards to billboards.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">Is this really free?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Yes, this tool is 100% free and open-source. All generation happens locally in your browser, meaning your data is private, secure, and no sign-up is required.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">What is error correction?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Error correction allows a QR code to be scanned even if part of it is damaged or covered. 
+                  We offer four levels: L (Low, 7%), M (Medium, 15%), Q (Quartile, 25%), and H (High, 30%). 
+                  Use 'H' if you add a logo to the center.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-2">Why use SVG for QR Codes?</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  SVG (Scalable Vector Graphics) files are resolution-independent. Unlike PNG or JPG images, 
+                  SVGs do not get blurry or pixelated when printed on large surfaces. They are the professional standard for printing.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
   );
