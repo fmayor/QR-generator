@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, User, Calendar, Bitcoin, MapPin, Globe, Mail, Phone, Briefcase, AlertCircle } from 'lucide-react';
+import { Wifi, User, Calendar, Bitcoin, MapPin, Globe, Mail, Phone, Briefcase, AlertCircle, Building2 } from 'lucide-react';
 
 interface FormProps {
   onChange: (payload: string) => void;
@@ -80,6 +80,7 @@ export const VCardForm: React.FC<FormProps> = ({ onChange }) => {
     firstName: '',
     lastName: '',
     phone: '',
+    workPhone: '',
     email: '',
     website: '',
     org: '',
@@ -91,17 +92,22 @@ export const VCardForm: React.FC<FormProps> = ({ onChange }) => {
 
   useEffect(() => {
     // Standard vCard 3.0 format
-    const payload = `BEGIN:VCARD
+    // We conditionally add phones so empty fields don't create blank entries
+    let payload = `BEGIN:VCARD
 VERSION:3.0
 N:${data.lastName};${data.firstName};;;
 FN:${data.firstName} ${data.lastName}
 ORG:${data.org}
 TITLE:${data.title}
-TEL:${data.phone}
 EMAIL:${data.email}
 URL:${data.website}
 ADR:;;${data.street};${data.city};;;${data.country}
-END:VCARD`;
+`;
+    if (data.phone) payload += `TEL;TYPE=CELL:${data.phone}\n`;
+    if (data.workPhone) payload += `TEL;TYPE=WORK:${data.workPhone}\n`;
+    
+    payload += `END:VCARD`;
+    
     onChange(payload);
   }, [data, onChange]);
 
@@ -125,12 +131,22 @@ END:VCARD`;
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Mobile Phone</label>
           <div className="relative">
             <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-            <input type="tel" value={data.phone} onChange={e => update('phone', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+1 234 567 890" />
+            <input type="tel" value={data.phone} onChange={e => update('phone', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+1 234..." />
           </div>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Work Phone</label>
+          <div className="relative">
+             <Building2 className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+            <input type="tel" value={data.workPhone} onChange={e => update('workPhone', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="+1 800..." />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
           <div className="relative">
@@ -138,13 +154,12 @@ END:VCARD`;
             <input type="email" value={data.email} onChange={e => update('email', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="john@example.com" />
           </div>
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Website</label>
-        <div className="relative">
-          <Globe className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-          <input type="url" value={data.website} onChange={e => update('website', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://mysite.com" />
+         <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Website</label>
+          <div className="relative">
+            <Globe className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+            <input type="url" value={data.website} onChange={e => update('website', e.target.value)} className="w-full pl-10 p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://mysite.com" />
+          </div>
         </div>
       </div>
 

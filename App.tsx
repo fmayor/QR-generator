@@ -36,7 +36,11 @@ export default function App() {
   const [scrollToSection, setScrollToSection] = useState<string | undefined>(undefined);
   
   // Generator State
+  // textTabInput stores the user's input in the Text/AI tab specifically
+  const [textTabInput, setTextTabInput] = useState<string>('https://svg-qr.com');
+  // input stores the actual payload to be generated (shared across all modes)
   const [input, setInput] = useState<string>('https://svg-qr.com');
+  
   const [mode, setMode] = useState<GenerationMode>('ai');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [qrSvg, setQrSvg] = useState<string>('');
@@ -71,8 +75,8 @@ export default function App() {
     if (!consent) setShowCookieBanner(true);
   }, []);
 
-  const navigateTo = (newView: ViewState, sectionId?: string) => {
-    setView(newView);
+  const navigateTo = (navigateToView: ViewState, sectionId?: string) => {
+    setView(navigateToView);
     setScrollToSection(sectionId);
     window.scrollTo(0, 0);
   };
@@ -164,14 +168,19 @@ export default function App() {
   };
 
   const handleMagicInput = async () => {
-    if (!input.trim() || mode !== 'ai') return;
+    if (!textTabInput.trim() || mode !== 'ai') return;
     setIsProcessingAI(true);
     setAiSummary(null);
     setAiStatus(null);
     
     try {
-      const result: AIResponse = await interpretInput(input);
+      // Use textTabInput as source of truth for AI
+      const result: AIResponse = await interpretInput(textTabInput);
+      
+      // Update both the text box and the QR payload with the result
+      setTextTabInput(result.payload);
       setInput(result.payload);
+      
       setAiSummary(result.summary);
       if (result.summary.includes("AI Disabled") || result.summary.includes("AI Unavailable")) {
         setAiStatus('fallback');
@@ -235,9 +244,12 @@ export default function App() {
         {/* Header */}
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-              <QrCode className="text-white w-6 h-6" />
-            </div>
+             <a href="/" onClick={(e) => { e.preventDefault(); navigateTo('home'); }} className="group">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-10 h-10 shadow-lg shadow-indigo-200 rounded-xl group-hover:scale-105 transition-transform duration-200">
+                <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+                <path fill="white" d="M7 7h6v6H7zM19 7h6v6h-6zM7 19h6v6H7zM19 19h2v2h-2zM23 19h2v2h-2zM19 23h2v2h-2zM23 23h2v2h-2z"/>
+              </svg>
+            </a>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">SVG QR</h1>
               <p className="text-sm text-slate-500">
@@ -273,10 +285,17 @@ export default function App() {
                    <button
                     key={tab.id}
                     onClick={() => {
-                      setMode(tab.id as GenerationMode);
+                      const newMode = tab.id as GenerationMode;
+                      setMode(newMode);
                       setAiSummary(null);
                       setAiStatus(null);
-                      if (tab.id !== 'ai') setInput(''); // Clear input when switching to manual forms
+                      
+                      // Logic to separate Text Input from formatted Form Inputs
+                      if (newMode === 'ai') {
+                         setInput(textTabInput); // Restore the text tab content
+                      } else {
+                         setInput(''); // Clear main payload so form component can populate it fresh
+                      }
                     }}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
                       ${mode === tab.id 
@@ -298,15 +317,19 @@ export default function App() {
                   </label>
                   <div className="relative">
                     <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
+                      value={textTabInput}
+                      onChange={(e) => {
+                         const val = e.target.value;
+                         setTextTabInput(val);
+                         setInput(val); // Sync to master payload
+                      }}
                       className="w-full h-32 p-4 pr-12 text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400"
                       placeholder={hasApiKey ? "Paste a URL or try AI commands:\n• 'Event: Launch Party next Friday at 7pm'\n• 'WiFi: HomeNet pass: secret123'\n• 'Eth wallet: 0x71C...'\n• 'vCard: John Doe, 555-0199'" : "Enter text, website URL, or paste content here..."}
                     />
                     {hasApiKey && (
                       <button
                         onClick={handleMagicInput}
-                        disabled={isProcessingAI || !input.trim()}
+                        disabled={isProcessingAI || !textTabInput.trim()}
                         className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg transition-colors shadow-md group"
                         title="Enhance with AI"
                       >
@@ -631,8 +654,11 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <QrCode className="text-white w-5 h-5" />
+                 <div className="group">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform duration-200">
+                    <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+                    <path fill="white" d="M7 7h6v6H7zM19 7h6v6h-6zM7 19h6v6H7zM19 19h2v2h-2zM23 19h2v2h-2zM19 23h2v2h-2zM23 23h2v2h-2z"/>
+                  </svg>
                 </div>
                 <span className="font-bold text-lg text-slate-800">SVG QR</span>
               </div>
