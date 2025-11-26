@@ -3,6 +3,7 @@ import { QROptions, AIResponse, GenerationMode } from './types';
 import { generateQRDataURL, generateQRSVG, downloadPDF, downloadSVG, verifyQRCode } from './utils/qrHelper';
 import { SettingsPanel } from './components/SettingsPanel';
 import { WifiForm, VCardForm, EventForm, CryptoForm } from './components/FormComponents';
+import { PrivacyPolicy, TermsOfService } from './components/LegalPages';
 import { interpretInput } from './services/gemini';
 import { 
   Download, 
@@ -22,10 +23,17 @@ import {
   Calendar,
   Bitcoin,
   HelpCircle,
-  Copy
+  Copy,
+  X
 } from 'lucide-react';
 
+type ViewState = 'home' | 'privacy' | 'terms';
+
 export default function App() {
+  const [view, setView] = useState<ViewState>('home');
+  const [scrollToSection, setScrollToSection] = useState<string | undefined>(undefined);
+  
+  // Generator State
   const [input, setInput] = useState<string>('https://svg-qr.com');
   const [mode, setMode] = useState<GenerationMode>('ai');
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -39,6 +47,7 @@ export default function App() {
   const [verificationWarning, setVerificationWarning] = useState<'margin' | null>(null);
   
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
   
   const hasApiKey = !!process.env.API_KEY;
   
@@ -54,6 +63,22 @@ export default function App() {
     style: 'square',
     frameShape: 'square',
   });
+
+  useEffect(() => {
+    const consent = localStorage.getItem('cookie-consent');
+    if (!consent) setShowCookieBanner(true);
+  }, []);
+
+  const navigateTo = (newView: ViewState, sectionId?: string) => {
+    setView(newView);
+    setScrollToSection(sectionId);
+    window.scrollTo(0, 0);
+  };
+
+  const acceptCookies = () => {
+    localStorage.setItem('cookie-consent', 'true');
+    setShowCookieBanner(false);
+  };
 
   // Debounce input to avoid excessive rendering
   useEffect(() => {
@@ -82,30 +107,24 @@ export default function App() {
         let warningType: 'margin' | null = null;
         
         // 1. Geometry Check: Black & White + Logo
-        // We do NOT override frameShape here. If the user selected 'circle', the circle background
-        // provides natural margin, so we want the verifier to see that.
         if (options.logo || options.margin === 0) {
            const geometryOptions: QROptions = { 
              ...options, 
              style: 'square',
              color: { dark: '#000000', light: '#ffffff' },
-             // Keep user's frameShape to correctly validate circular frames with 0 internal margin
            };
            const geometryUrl = await generateQRDataURL(input, geometryOptions);
            
            // Strict Check: Simulate hostile black background
-           // If margin is 0 and frame is square, modules will touch black background -> fail.
            const geometryReadable = await verifyQRCode(geometryUrl, input, '#000000');
            
            if (!geometryReadable) {
-             // Fallback: If strict check failed, check if it's just a margin issue.
-             // We test on a WHITE background. If this passes, the QR code is valid but needs a light background.
              if (options.margin === 0) {
                 const lenientReadable = await verifyQRCode(geometryUrl, input, '#ffffff');
                 if (lenientReadable) {
                   warningType = 'margin';
                 } else {
-                  errorType = 'logo'; // Failed even on white background -> real geometry/logo issue
+                  errorType = 'logo'; 
                 }
              } else {
                 errorType = 'logo';
@@ -113,18 +132,15 @@ export default function App() {
            }
         }
 
-        // 2. Contrast Check: User Colors + No Logo
-        // Only run if we don't already have a fatal error
+        // 2. Contrast Check
         if (!errorType) {
            const colorOptions: QROptions = { 
              ...options, 
              style: 'square',
              logo: null,
-             // Keep user's frameShape
            };
            const colorUrl = await generateQRDataURL(input, colorOptions);
            
-           // Check contrast against the QR's own foreground color to detect bleeding
            const contrastReadable = await verifyQRCode(colorUrl, input, options.color.dark);
            if (!contrastReadable) {
              errorType = 'contrast';
@@ -179,7 +195,6 @@ export default function App() {
   const handleCopy = async () => {
     if (!qrDataUrl) return;
     try {
-      // Synchronous Blob creation to ensure we stay within the user activation window.
       const byteString = atob(qrDataUrl.split(',')[1]);
       const mimeString = qrDataUrl.split(',')[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
@@ -201,9 +216,19 @@ export default function App() {
     }
   };
 
+  // ROUTER RENDER
+  if (view === 'privacy') {
+    return <PrivacyPolicy onBack={() => navigateTo('home')} scrollToId={scrollToSection} />;
+  }
+  
+  if (view === 'terms') {
+    return <TermsOfService onBack={() => navigateTo('home')} />;
+  }
+
+  // DEFAULT: GENERATOR APP
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900 flex flex-col">
+      <div className="max-w-6xl mx-auto space-y-8 flex-grow w-full">
         
         {/* Header */}
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -556,7 +581,80 @@ export default function App() {
           </div>
         </section>
 
+        {/* Footer */}
+        <footer className="mt-20 border-t border-slate-200 pt-8 pb-12 text-center md:text-left">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                  <QrCode className="text-white w-5 h-5" />
+                </div>
+                <span className="font-bold text-lg text-slate-800">SVG QR</span>
+              </div>
+              <p className="text-sm text-slate-500 max-w-xs mx-auto md:mx-0 leading-relaxed">
+                The free, privacy-first vector QR code generator. 
+                Built for designers, developers, and everyone who hates sign-up forms.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-slate-500">
+                <li>
+                  <a href="/privacy.html" onClick={(e) => { e.preventDefault(); navigateTo('privacy'); }} className="hover:text-indigo-600 transition-colors cursor-pointer">
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="/terms.html" onClick={(e) => { e.preventDefault(); navigateTo('terms'); }} className="hover:text-indigo-600 transition-colors cursor-pointer">
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="/privacy.html#cookies" onClick={(e) => { e.preventDefault(); navigateTo('privacy', 'cookies'); }} className="hover:text-indigo-600 transition-colors cursor-pointer">
+                    Cookie Policy
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4">Connect</h4>
+              <ul className="space-y-2 text-sm text-slate-500">
+                <li><a href="https://github.com/fmayor/QR-generator" target="_blank" rel="noreferrer" className="hover:text-indigo-600 transition-colors">GitHub</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">
+            &copy; {new Date().getFullYear()} SVG-QR.com. All rights reserved.
+          </div>
+        </footer>
       </div>
+
+      {/* Cookie Consent Banner */}
+      {showCookieBanner && (
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 z-50 animate-in slide-in-from-bottom duration-500">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-slate-600 text-center md:text-left">
+              We use cookies to analyze traffic and personalize content. By continuing to use this site, you agree to our use of cookies.
+            </p>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={acceptCookies}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Accept
+              </button>
+              <button 
+                onClick={() => setShowCookieBanner(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

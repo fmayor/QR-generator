@@ -1,51 +1,20 @@
 <div align="center">
-<img width="1722" height="965" alt="Image" src="https://github.com/user-attachments/assets/a62c81f1-2e8a-4185-a78b-eab10e03fc1e" />
-
-# SVG QR (Easy QR)
-
-**The Free, Unlimited, Privacy-First Vector QR Code Generator.**
-
-[**View Live Demo**](https://svg-qr.com) · [Report Bug](https://github.com/fmayor/QR-generator/issues) · [Request Feature](https://github.com/fmayor/QR-generator/issues)
-
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-**SVG QR** (also known as Easy QR) is a powerful, open-source, and completely free QR code generator that runs entirely in your browser. It specializes in creating high-quality vector (SVG/PDF) QR codes that remain sharp at any size, making them perfect for professional printing, marketing materials, and digital use.
+# Run and deploy your AI Studio app
 
-Unlike many other tools, **SVG QR** requires **no sign-up**, has **no scan limits**, and ensures your data **never leaves your device**.
+This contains everything you need to run your app locally.
 
-## 🚀 Key Features
+View your app in AI Studio: https://ai.studio/apps/drive/1UHR5mX57tEZrepcB1141W4Sqy3iy1J5h
 
-* **Unlimited Generation**: Create as many QR codes as you need without restrictions.
-* **Vector Quality**: Download in **SVG** and **PDF** formats for infinite scalability.
-* **Privacy First**: All QR generation happens locally in your browser. No server tracking.
-* **Smart Verification**: Built-in checks for contrast issues and logo obstruction to ensure scannability.
-* **Customization**:
-  * Adjust colors (foreground/background)
-  * Add custom logos
-  * Change error correction levels (L, M, Q, H)
-  * Modify margins and styles
-* **Multiple Formats**:
-  * **Text/URL**: Standard links and messages.
-  * **WiFi**: Connect to networks instantly.
-  * **vCard**: Share contact details.
-  * **Event**: Calendar invites.
-  * **Crypto**: Bitcoin and Ethereum addresses.
+## Run Locally
 
-## 🛠️ Tech Stack
+**Prerequisites:**  Node.js
 
-This project is built with modern web technologies for speed and performance:
 
-* **Frontend**: [React](https://react.dev/) (v19), [TypeScript](https://www.typescriptlang.org/)
-* **Build Tool**: [Vite](https://vitejs.dev/)
-* **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-* **QR Generation**: `qrcode`, `jsqr`
-* **Icons**: `lucide-react`
-
-## 📦 Installation & Local Development
-
-To run this project locally, follow these steps:
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/fmayor/QR-generator.git](https://github.com/fmayor/QR-generator.git)
-   cd QR-generator
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
