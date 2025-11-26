@@ -1,6 +1,5 @@
 <div align="center">
 <img width="1722" height="965" alt="Image" src="https://github.com/user-attachments/assets/a62c81f1-2e8a-4185-a78b-eab10e03fc1e" />
-<img width="1110" height="39" alt="image" src="https://github.com/user-attachments/assets/2baf5eb6-f84a-4b5e-ac90-e8528d3cdfca" />
 
 # SVG QR (Easy QR)
 
