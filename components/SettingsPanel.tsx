@@ -55,7 +55,12 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setOptions(prev => ({ ...prev, logo: event.target?.result as string }));
+          // AUTO-UPGRADE: When adding a logo, automatically set Level to 'H' to ensure readability.
+          setOptions(prev => ({ 
+            ...prev, 
+            logo: event.target?.result as string,
+            errorCorrectionLevel: 'H'
+          }));
         }
       };
       reader.readAsDataURL(file);
@@ -233,7 +238,7 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
                   className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                 />
                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">
-                   Large logos require 'H' error correction to scan correctly.
+                   Adjust size if the logo covers too much of the data.
                  </p>
               </div>
              </div>
@@ -269,7 +274,9 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
             ))}
           </div>
           <p className="text-xs text-slate-400 mt-2">
-            Use 'H' or 'Q' when adding a logo to ensure the QR code remains scannable.
+            {options.errorCorrectionLevel === 'H' || options.errorCorrectionLevel === 'Q' 
+              ? "High redundancy. Best for logos, but makes the code denser." 
+              : "Standard redundancy. Best for long URLs and cleaner look."}
           </p>
         </div>
 

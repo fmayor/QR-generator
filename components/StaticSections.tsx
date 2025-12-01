@@ -47,6 +47,14 @@ export const FAQSection = React.memo(() => (
         </div>
 
         <div>
+          <h3 className="font-semibold text-slate-900 mb-2">Why not always use 'High' error correction?</h3>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Higher error correction makes the QR code more complex and dense. For long URLs, this can make the dots too small to scan easily. 
+            Only use 'High' if you plan to add a logo or if the code will be placed outdoors where it might get damaged. For standard use, 'Medium' is the perfect balance.
+          </p>
+        </div>
+
+        <div>
           <h3 className="font-semibold text-slate-900 mb-2">Why use SVG for QR Codes?</h3>
           <p className="text-sm text-slate-500 leading-relaxed">
             SVG (Scalable Vector Graphics) files are resolution-independent. Unlike PNG or JPG images, 
