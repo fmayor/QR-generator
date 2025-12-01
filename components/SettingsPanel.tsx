@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { QROptions } from '../types';
-import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket, Grid, Circle, Square } from 'lucide-react';
+import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket, Grid, Circle, Square, UploadCloud } from 'lucide-react';
 
 interface SettingsPanelProps {
   options: QROptions;
@@ -27,6 +27,7 @@ const BG_COLORS = [
 
 export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptions }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFgColorChange = (color: string) => {
     setOptions(prev => ({ ...prev, color: { ...prev.color, dark: color } }));
@@ -44,26 +45,49 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
     setOptions(prev => ({ ...prev, style }));
   };
 
+  const processFile = (file: File) => {
+    if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
+      alert('Please upload a PNG or JPEG image only.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        // AUTO-UPGRADE: When adding a logo, automatically set Level to 'H' to ensure readability.
+        setOptions(prev => ({ 
+          ...prev, 
+          logo: event.target?.result as string,
+          errorCorrectionLevel: 'H'
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
-        alert('Please upload a PNG or JPEG image only.');
-        return;
-      }
+      processFile(file);
+    }
+  };
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          // AUTO-UPGRADE: When adding a logo, automatically set Level to 'H' to ensure readability.
-          setOptions(prev => ({ 
-            ...prev, 
-            logo: event.target?.result as string,
-            errorCorrectionLevel: 'H'
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
     }
   };
 
@@ -198,12 +222,22 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
           {!options.logo ? (
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-indigo-400 hover:bg-indigo-50 transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2 group"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl p-4 transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2 group
+                ${isDragging 
+                  ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200 ring-offset-2' 
+                  : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'
+                }`}
             >
-              <div className="p-2 bg-slate-100 rounded-full group-hover:bg-white transition-colors">
-                <ImageIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
+              <div className={`p-2 rounded-full transition-colors ${isDragging ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 group-hover:bg-white'}`}>
+                {isDragging ? <UploadCloud className="w-5 h-5" /> : <ImageIcon className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />}
               </div>
-              <p className="text-xs text-slate-500 font-medium">Click to upload <br/>(PNG or JPEG)</p>
+              <p className="text-xs text-slate-500 font-medium">
+                {isDragging ? "Drop logo here" : "Click or drag logo"} 
+                <br/><span className="text-[10px] opacity-70">(PNG or JPEG)</span>
+              </p>
             </div>
           ) : (
              <div className="space-y-4">
