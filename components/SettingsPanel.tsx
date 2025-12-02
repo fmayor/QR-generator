@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { QROptions } from '../types';
-import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket, Grid, Circle, Square, UploadCloud } from 'lucide-react';
+import { Settings, Check, Droplet, ShieldCheck, Maximize, Image as ImageIcon, X, Palette, PaintBucket, Grid, Circle, Square, UploadCloud, Ban } from 'lucide-react';
 
 interface SettingsPanelProps {
   options: QROptions;
@@ -96,6 +96,8 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const isTransparent = options.color.light === 'transparent';
+
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
       <div className="flex items-center gap-2 mb-6 text-slate-800">
@@ -153,33 +155,61 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
               <PaintBucket className="w-4 h-4" />
               Background Color
             </label>
-            <div className="flex flex-wrap gap-3">
-              {BG_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => handleBgColorChange(c.value)}
-                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center border border-slate-200
-                    ${options.color.light === c.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
-                  style={{ backgroundColor: c.value }}
-                  title={c.name}
-                >
-                  {options.color.light === c.value && <Check className="w-4 h-4 text-slate-900 mix-blend-difference" strokeWidth={3} />}
-                </button>
-              ))}
-              
-              <div className="relative group">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ring-1 ring-slate-100 bg-white"
-                >
-                  <Palette className="w-4 h-4 text-slate-700 opacity-70" />
+            
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Transparent Toggle */}
+              <button
+                onClick={() => handleBgColorChange(isTransparent ? '#ffffff' : 'transparent')}
+                className={`h-8 px-3 rounded-full border transition-all flex items-center gap-2 text-xs font-medium
+                  ${isTransparent
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm ring-1 ring-indigo-200' 
+                    : 'bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                title="Toggle Transparent Background"
+              >
+                {isTransparent ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Ban className="w-3.5 h-3.5" />
+                )}
+                Transparent
+              </button>
+
+              <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
+
+              {/* Color Options */}
+              <div className={`flex flex-wrap gap-3 transition-opacity duration-200 ${isTransparent ? 'opacity-40' : ''}`}>
+                {BG_COLORS.map((c) => (
+                  <button
+                    key={c.value}
+                    onClick={() => handleBgColorChange(c.value)}
+                    className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center border border-slate-200 overflow-hidden relative
+                      ${options.color.light === c.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
+                    style={{ backgroundColor: c.value }}
+                    title={c.name}
+                  >
+                    {options.color.light === c.value && (
+                      <Check className={`w-4 h-4 relative z-10 ${c.value === '#1e293b' ? 'text-white' : 'text-slate-900'}`} strokeWidth={3} />
+                    )}
+                  </button>
+                ))}
+                
+                <div className="relative group">
+                  <div 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-110 shadow-sm ring-1 ring-slate-100 bg-white ${
+                      !isTransparent && !BG_COLORS.some(c => c.value === options.color.light) ? 'ring-2 ring-offset-1 ring-indigo-500' : ''
+                    }`}
+                  >
+                    <Palette className="w-4 h-4 text-slate-700 opacity-70" />
+                  </div>
+                  <input
+                    type="color"
+                    value={isTransparent ? '#ffffff' : options.color.light}
+                    onChange={(e) => handleBgColorChange(e.target.value)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                    title="Choose Custom Background"
+                  />
                 </div>
-                <input
-                  type="color"
-                  value={options.color.light}
-                  onChange={(e) => handleBgColorChange(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
-                  title="Choose Custom Background"
-                />
               </div>
             </div>
           </div>

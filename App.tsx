@@ -56,7 +56,7 @@ export default function App() {
     width: 1024,
     color: {
       dark: '#000000',
-      light: '#ffffff',
+      light: 'transparent',
     },
     errorCorrectionLevel: 'M',
     logoSize: 0.2,
@@ -115,7 +115,7 @@ export default function App() {
            };
            const geometryUrl = await generateQRDataURL(input, geometryOptions);
            
-           // Strict Check: Simulate hostile black background
+           // Strict Check: Simulate hostile black background for margin checks
            const geometryReadable = await verifyQRCode(geometryUrl, input, '#000000');
            
            if (!geometryReadable) {
@@ -141,7 +141,11 @@ export default function App() {
            };
            const colorUrl = await generateQRDataURL(input, colorOptions);
            
-           const contrastReadable = await verifyQRCode(colorUrl, input, options.color.dark);
+           // If background is transparent, simulate white background for readability check.
+           // Otherwise, use the actual background (pass undefined so verifyQRCode uses image as-is).
+           const backgroundSimulation = options.color.light === 'transparent' ? '#ffffff' : undefined;
+           
+           const contrastReadable = await verifyQRCode(colorUrl, input, backgroundSimulation);
            if (!contrastReadable) {
              errorType = 'contrast';
            }
@@ -439,7 +443,7 @@ export default function App() {
               </div>
 
               <div 
-                className={`bg-transparent p-4 rounded-xl flex items-center justify-center`}
+                className={`bg-transparent p-4 rounded-xl flex items-center justify-center ${options.color.light === 'transparent' ? "bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAHElEQVQYlWNgYGD4z8AARwYY04Vf//9Hw6OAAgAMHgv1Ku8W0gAAAABJRU5ErkJggg==')]" : ''}`}
               >
                 {qrDataUrl ? (
                    <img 

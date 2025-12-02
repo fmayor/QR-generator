@@ -60,29 +60,31 @@ export const generateQRDataURL = async (text: string, options: QROptions): Promi
     // Clear canvas for transparency
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    // 2. Draw Background Shape
-    ctx.fillStyle = options.color.light;
-    
-    if (options.frameShape === 'circle') {
-      ctx.beginPath();
-      ctx.arc(canvasWidth / 2, canvasHeight / 2, canvasWidth / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.clip(); // Clip further drawing to this circle
-    } else if (options.frameShape === 'rounded') {
-      // RoundRect with radius approx 10% of size
-      ctx.beginPath();
-      const radius = canvasWidth * 0.1; 
-      if (ctx.roundRect) {
-         ctx.roundRect(0, 0, canvasWidth, canvasHeight, radius);
+    // 2. Draw Background Shape (Only if NOT transparent)
+    if (options.color.light !== 'transparent') {
+      ctx.fillStyle = options.color.light;
+      
+      if (options.frameShape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(canvasWidth / 2, canvasHeight / 2, canvasWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.clip(); // Clip further drawing to this circle
+      } else if (options.frameShape === 'rounded') {
+        // RoundRect with radius approx 10% of size
+        ctx.beginPath();
+        const radius = canvasWidth * 0.1; 
+        if (ctx.roundRect) {
+           ctx.roundRect(0, 0, canvasWidth, canvasHeight, radius);
+        } else {
+           // Fallback for older browsers if needed, though most support roundRect now
+           ctx.rect(0, 0, canvasWidth, canvasHeight);
+        }
+        ctx.fill();
+        ctx.clip();
       } else {
-         // Fallback for older browsers if needed, though most support roundRect now
-         ctx.rect(0, 0, canvasWidth, canvasHeight);
+        // Standard Square
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
       }
-      ctx.fill();
-      ctx.clip();
-    } else {
-      // Standard Square
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     }
 
     // 3. Draw Modules
@@ -201,14 +203,16 @@ export const generateQRSVG = async (text: string, options: QROptions): Promise<s
     let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}" shape-rendering="${options.style === 'dots' ? 'auto' : 'crispEdges'}">`;
     
     // Background Shape
-    if (options.frameShape === 'circle') {
-      const r = viewBoxSize / 2;
-      svgContent += `<circle cx="${r}" cy="${r}" r="${r}" fill="${options.color.light}" />`;
-    } else if (options.frameShape === 'rounded') {
-      const radius = viewBoxSize * 0.1;
-      svgContent += `<rect x="0" y="0" width="${viewBoxSize}" height="${viewBoxSize}" rx="${radius}" fill="${options.color.light}" />`;
-    } else {
-      svgContent += `<rect width="100%" height="100%" fill="${options.color.light}" />`;
+    if (options.color.light !== 'transparent') {
+      if (options.frameShape === 'circle') {
+        const r = viewBoxSize / 2;
+        svgContent += `<circle cx="${r}" cy="${r}" r="${r}" fill="${options.color.light}" />`;
+      } else if (options.frameShape === 'rounded') {
+        const radius = viewBoxSize * 0.1;
+        svgContent += `<rect x="0" y="0" width="${viewBoxSize}" height="${viewBoxSize}" rx="${radius}" fill="${options.color.light}" />`;
+      } else {
+        svgContent += `<rect width="100%" height="100%" fill="${options.color.light}" />`;
+      }
     }
     
     // Group for QR modules to handle offset if needed
@@ -375,8 +379,8 @@ export const downloadPDF = (text: string, options: QROptions, filename: string =
   const xOffset = (pageWidth - qrSize) / 2;
   const yOffset = (pageHeight - qrSize) / 2;
   
-  // Background Shape for PDF
-  if (options.color.light) {
+  // Background Shape for PDF (Only if NOT transparent)
+  if (options.color.light && options.color.light !== 'transparent') {
     doc.setFillColor(options.color.light);
     if (options.frameShape === 'circle') {
        // Draw circle
