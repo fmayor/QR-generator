@@ -320,7 +320,7 @@ export const SettingsPanel = React.memo<SettingsPanelProps>(({ options, setOptio
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-3">
             <ShieldCheck className="w-4 h-4" />
-            Error Correction
+            Advanced: Error Correction
           </label>
           <div className="grid grid-cols-4 gap-2">
             {['L', 'M', 'Q', 'H'].map((level) => (
